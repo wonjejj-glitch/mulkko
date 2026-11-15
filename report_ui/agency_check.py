@@ -57,14 +57,14 @@ def check_survey_grades(survey_path: str | Path, cfg: dict) -> tuple[pd.DataFram
     import json
     from common.manuals import manual_view
     from defect_processor.calibration import calibrate_pipe
-    from defect_processor.loader import load_survey, read_tables
+    from defect_processor.loader import build_pipes, read_tables
     from rehab_decision_ve.scoring import evaluate
 
     raw = pd.read_excel(survey_path, sheet_name="관로제원", dtype=object)
     agency = {str(r["관번"]).strip(): r for _, r in raw.iterrows()}
-    _, defects = read_tables(survey_path, cfg)
+    pipe_rows, defects = read_tables(survey_path, cfg)
     missing = set(defects.loc[pd.to_numeric(defects["distance_m"], errors="coerce").isna(), "pipe_id"].astype(str)) if len(defects) else set()
-    pipes, _w = load_survey(survey_path, cfg)
+    pipes, _w = build_pipes(pipe_rows, defects, cfg)
     def clean(v):
         return "" if pd.isna(v) else str(v).strip()
     def number(v):
