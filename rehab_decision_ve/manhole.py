@@ -87,42 +87,45 @@ def repair_rules() -> dict:
     return json.loads((CONFIG.parent.parent / "manhole_repair.json").read_text(encoding="utf-8"))
 
 
-def decide_repair(defect_names: list, struct_grade: float, oper_grade: float, depth_m: float | None = None) -> list[dict]:
-    """맨홀 1개소의 보수공법 목록 [{공법, 단위, 수량, 단가, 금액}].
+def _price(v: dict, depth: float) -> float:
+    if "price_by_depth" in v:
+        for hmax, pr in v["price_by_depth"]:
+            if depth <= hmax:
+                return pr
+        return v["price_by_depth"][-1][1]
+    return v["price"]
 
-    구조 5등급 → 맨홀재설치, 4등급대 → 내벽라이닝(둘 다 부분보수를 대체), 그 외 결함별 소규모 공법.
+
+def decide_repair(defect_names: list, struct_grade: float, oper_grade: float, depth_m: float | None = None) -> list[dict]:
+    """맨홀 1개소의 보수공법 목록 [{공법, 단위, 수량, 단가, 금액, 단가근거}].
+
+    defect_names: [(결함명, 대/중/소)] 또는 결함명 목록(등급 미상은 '중'으로 봄).
+    결함별 공법(trigger_defects·trigger_levels) + 구조등급 규칙(5등급 재설치, 4등급대 내벽라이닝).
     """
     r = repair_rules()
-    items = [(d, "중") if isinstance(d, str) else d for d in defect_names]
-    names = {n for n, _ in items}
-    def _sc(n, lv):
-        d = defect_score(n, lv)
-        return d[0] if d else 0.0
-    minor_ok = {n for n, lv in items if _sc(n, lv) >= r["grade_rule"]["min_defect_score"]}   # 3등급(20점) 미만 결함은 소규모 공법 제외
+    items = [(d, "중") if isinstance(d, str) else tuple(d) for d in defect_names]
     depth = depth_m if depth_m and depth_m > 0 else r["default_depth_m"]
-    picked: list[str] = []
     gr = r["grade_rule"]
+    picked: list[str] = []
     if struct_grade >= gr["replace_struct_ge"]:
         picked.append("맨홀재설치")
     elif struct_grade >= gr["lining_struct_ge"]:
         picked.append("내벽라이닝")
+    replaced_by = {"맨홀재설치": {"맨홀뚜껑설치", "인버트설치", "맨홀내부파손보수", "맨홀관거접합부보수", "맨홀주변부보수", "균열보수", "사다리교체"},
+                   "내벽라이닝": {"맨홀내부파손보수", "균열보수"}}
+    skip = replaced_by.get(picked[0], set()) if picked else set()
     for w, v in r["works"].items():
-        if "trigger_defects" not in v or not names & set(v["trigger_defects"]):
+        trig = set(v.get("trigger_defects", []))
+        if not trig or w in skip:
             continue
-        if w in ("부분보수", "높이조정", "인버트보수") and not minor_ok & set(v["trigger_defects"]):
-            continue
-        if w == "부분보수" and picked and picked[0] in ("맨홀재설치", "내벽라이닝"):
-            continue
-        if w in ("뚜껑교체", "높이조정", "인버트보수") and "맨홀재설치" in picked:
-            continue
-        if w == "인버트보수" and struct_grade < r["grade_rule"]["invert_struct_ge"]:
-            continue
-        if w == "내부청소" and oper_grade < 2 and not names & {"폐유부착", "임시장애물"}:
-            continue
-        picked.append(w)
+        lv_ok = set(v.get("trigger_levels", ["대", "중", "소"]))
+        if any(n in trig and lv in lv_ok for n, lv in items):
+            picked.append(w)
     out = []
     for w in picked:
         v = r["works"][w]
         q = round(depth, 1) if v["unit"] == "m" else 1
-        out.append({"공법": w, "단위": v["unit"], "수량": q, "단가": v["price"], "금액": int(round(q * v["price"]))})
+        pr = _price(v, depth)
+        out.append({"공법": w, "단위": v["unit"], "수량": q, "단가": pr, "금액": int(round(q * pr)),
+                    "단가근거": v.get("price_basis", "")})
     return out

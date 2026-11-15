@@ -18,8 +18,8 @@ from pathlib import Path
 
 import numpy as np
 
-CAPTION = re.compile(r"^(?P<name>.+?)\((?P<grade>[대중소ABC])\)\s*\[(?P<t>\d\d:\d\d:\d\d)\]$")
-ANY_CAPTION = re.compile(r"^(?P<name>.+?)\s*\[(?P<t>\d\d:\d\d:\d\d)\]$")
+CAPTION = re.compile(r"^(?P<name>.+?)\((?P<grade>[대중소ABC])\)\s*\[(?P<t>\d\d:\d\d:\d{0,2})\]?$")
+ANY_CAPTION = re.compile(r"^(?P<name>.+?)\s*\[(?P<t>\d\d:\d\d:\d{0,2})\]?$")
 FOOTER = re.compile(r"관로번호\s*:\s*(?P<pid>[^\s/]+)\s*-\s*\((?P<page>\d+)\)")
 METERS = re.compile(r"^-?\d+(?:\.\d+)?m$")
 GRADE5 = {"대": 5, "A": 5, "중": 4, "B": 4, "소": 3, "C": 3}
@@ -27,6 +27,11 @@ GRADE5 = {"대": 5, "A": 5, "중": 4, "B": 4, "소": 3, "C": 3}
 
 # ------------------------------------------------------------------ 비트맵 글꼴 판독
 def _mask(pix) -> np.ndarray:
+    if isinstance(pix, tuple):
+        shape, packed = pix
+        return np.unpackbits(np.frombuffer(packed, dtype=np.uint8), count=int(np.prod(shape))).reshape(shape).astype(bool)
+    if isinstance(pix, np.ndarray):
+        return pix
     a = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
     if pix.n >= 3:
         r, b = a[:, :, 0].astype(int), a[:, :, 2].astype(int)
@@ -53,7 +58,7 @@ def _key(g: np.ndarray) -> bytes:
     rows = np.flatnonzero(g.any(axis=1))
     if len(rows):
         g = g[rows[0]:rows[-1] + 1]               # 위아래 여백 제거(이미지 높이가 달라도 같은 글자는 같은 키)
-    return bytes([g.shape[1], g.shape[0]]) + np.packbits(g).tobytes()
+    return np.asarray(g.shape, dtype="<u4").tobytes() + np.packbits(g).tobytes()
 
 
 def _norm(g: np.ndarray, h: int = 20, w: int = 14) -> np.ndarray:
@@ -73,7 +78,7 @@ def _glyphs(mask: np.ndarray) -> list[bytes]:
 def _is_minus(g: np.ndarray) -> bool:
     """가로로 납작한 막대(높이 ≤ 3px, 폭 ≥ 5px) → 음수 기호(역방향 촬영 구간 거리)."""
     rows = np.flatnonzero(g.any(axis=1))
-    return len(rows) > 0 and rows[-1] - rows[0] + 1 <= 3 and g.shape[1] >= 5
+    return len(rows) > 0 and g.shape[1] >= 5 and g.shape[1] / (rows[-1] - rows[0] + 1) >= 3
 
 
 def _nearest_distance_high(ocr, g) -> bool:
@@ -108,15 +113,17 @@ class GlyphOCR:
 
     def _nearest(self, g: np.ndarray) -> tuple[str | None, float]:
         n = _norm(g)
-        r = g.shape[1] / max(g.shape[0], 1)
-        best, bd = None, 1e9
-        for pn, pr, ch in self.protos:
-            if abs(pr - r) > 0.25 + 0.3 * r:
-                continue
-            d = float((pn != n).mean())
-            if d < bd:
-                best, bd = ch, d
-        return best, bd
+        r = g.shape[1] / max(np.count_nonzero(g.any(axis=1)), 1)
+        if not self.protos:
+            return None, 1e9
+        if getattr(self, "_proto_count", -1) != len(self.protos):
+            self._proto_count = len(self.protos)
+            self._proto_masks = np.stack([p[0] for p in self.protos])
+            self._proto_ratios = np.array([p[1] for p in self.protos])
+        distances = np.mean(self._proto_masks != n, axis=(1, 2))
+        distances[np.abs(self._proto_ratios-r) > 0.25+0.3*r] = np.inf
+        idx = int(np.argmin(distances))
+        return self.protos[idx][2], float(distances[idx])
 
     def learn(self, mask: np.ndarray, text: str) -> bool:
         gs = _glyphs(mask)
@@ -129,8 +136,11 @@ class GlyphOCR:
             self.table[g] = ch
         for m, c in zip(_glyph_masks(mask), text):
             near, d = self._nearest(m)
-            if near != c or d > 0.05:
-                self.protos.append((_norm(m), m.shape[1] / max(m.shape[0], 1), c))
+            norm = _norm(m)
+            # Do not add an indistinguishable prototype (<=1 differing grid pixel), even after conflicts.
+            duplicate = any(np.count_nonzero(pn != norm) <= 1 for pn, _pr, _ch in self.protos)
+            if not duplicate and (near != c or d > 0.05):
+                self.protos.append((norm, m.shape[1] / max(np.count_nonzero(m.any(axis=1)), 1), c))
         return True
 
     def read(self, mask: np.ndarray) -> str:
@@ -140,8 +150,6 @@ class GlyphOCR:
             ch = self.table.get(k)
             if ch is None and i == 0 and _is_minus(g):
                 ch = self.table[k] = "-"
-            if ch is None and self.protos and i == 0 and len(self.table) > 40 and _nearest_distance_high(self, g):
-                ch = "-"            # 글자 크기가 문자열 길이에 맞춰 늘어난 양식: 첫 글자가 숫자가 아니면 음수 기호
             if ch is None and self.protos:
                 near, d = self._nearest(g)
                 if near is not None and d < 0.22:
@@ -164,9 +172,9 @@ class PageData:
     end_label: object | None = None
 
 
-def _lines(page) -> list[tuple[float, float, str]]:
+def _lines(page, blocks=None) -> list[tuple[float, float, str]]:
     out = []
-    for b in page.get_text("dict")["blocks"]:
+    for b in (blocks if blocks is not None else page.get_text("dict", flags=3)["blocks"]):
         for l in b.get("lines", []):
             t = "".join(s["text"] for s in l["spans"]).strip()
             if t:
@@ -177,7 +185,9 @@ def _lines(page) -> list[tuple[float, float, str]]:
 def parse_page(doc, page) -> PageData | None:
     import fitz
 
-    lines = _lines(page)
+    # Extract once: hashing every photo/tile with get_image_info(xrefs=True) is prohibitively expensive.
+    blocks = page.get_text("dict")["blocks"]
+    lines = _lines(page, blocks)
     flat = [t for _y, _x, t in sorted(lines)]
     foot = next((m for t in flat for m in [FOOTER.search(t)] if m), None)
     pid_override = None
@@ -226,43 +236,62 @@ def parse_page(doc, page) -> PageData | None:
         m = ANY_CAPTION.match(t)
         if m and y > 200:
             c = CAPTION.match(t)
-            nm = re.sub(r"^\((?:관로|상태|맨홀)\)", "", (c.group("name") if c else m.group("name")).strip())
+            nm = re.sub(r"^\(?(?:관로|상태|맨홀)\)", "", (c.group("name") if c else m.group("name")).strip())
             caps.append((y, x, nm, c.group("grade") if c else None))
     caps.sort(key=lambda c: (round(c[0] / 20), c[1]))       # 행(같은 높이) → 열 순서
-    # 위치 라벨 이미지: 도식 왼쪽 열(폭 15~45pt, 높이 4~10pt)
-    infos = page.get_image_info(xrefs=True)
-    wide = [i for i in infos if 125 <= i["bbox"][0] <= 175 and (i["bbox"][2] - i["bbox"][0]) > 50
-            and (i["bbox"][3] - i["bbox"][1]) < 12]                       # '시작맨홀: …' '끝맨홀: …'
-    labels, start, end = [], None, None
-    for i in infos:
-        x0, y0, x1, y1 = i["bbox"]
-        if not (80 <= x0 <= 130 and 15 <= x1 - x0 <= 45 and 4 <= y1 - y0 <= 25 and y0 > 200):
+    # Embedded image blocks retain native mask pixels; honor mirrored image transforms.
+    infos = [b for b in blocks if b["type"] == 1]
+    nearby = [b for b in infos if 80 <= b["bbox"][0] <= 240 and b["bbox"][1] > 200
+              and b["bbox"][3] - b["bbox"][1] >= 4]
+    wide = [b for b in nearby if 125 <= b["bbox"][0] <= 175
+            and b["bbox"][2] - b["bbox"][0] > 50 and b["bbox"][3] - b["bbox"][1] < 25]
+
+    def bitmap(b):
+        pix = fitz.Pixmap(b["image"])
+        m = _mask(pix)
+        if b.get("colorspace") == 0 and not m.any():
+            # Image masks are exported as monochrome, sometimes replicated to RGB.
+            ar = np.frombuffer(pix.samples, np.uint8).reshape(pix.height, pix.width, pix.n)
+            m = ar[:, :, 0] > 128
+        tr = b.get("transform", (1, 0, 0, 1, 0, 0))
+        if tr[0] < 0:
+            m = m[:, ::-1]
+        if tr[3] < 0:
+            m = m[::-1]
+        return m
+
+    def packed(m):
+        rows = np.flatnonzero(m.any(axis=1))
+        if len(rows):
+            m = m[rows[0]:rows[-1]+1]
+        return m.shape, np.packbits(m).tobytes()
+
+    labels = []
+    for b in nearby:
+        x0, y0, x1, y1 = b["bbox"]
+        if not (80 <= x0 <= 130 and 15 <= x1-x0 <= 45 and 4 <= y1-y0 <= 25):
             continue
-        comp = next((j for j in infos if abs(j["bbox"][0] - x1) < 1.5 and abs(j["bbox"][1] - y0) < 2
-                     and (j["bbox"][2] - j["bbox"][0]) < 12 and (j["bbox"][3] - j["bbox"][1]) > 10), None)
-        if comp is not None:      # 회현형: 숫자 그림 + 단위('m') 그림이 둘로 나뉜 라벨 → 합쳐서 렌더링
-            r = fitz.Rect(x0, y0, comp["bbox"][2], y1)
-            pix = page.get_pixmap(clip=r, dpi=int(24 * 72 / max(y1 - y0, 1) * 1.0 + 60))
-            paired = []
-            labels.append((y0, pix, False))
+        m = bitmap(b)
+        comp = next((j for j in nearby if abs(j["bbox"][0]-x1) < 1.5
+                     and abs(j["bbox"][1]-y0) < 2 and 0 < j["bbox"][2]-j["bbox"][0] < 12
+                     and j["bbox"][3]-j["bbox"][1] > 10), None)
+        if comp is not None:
+            right = bitmap(comp)
+            if m.shape[0] == right.shape[0]:
+                m = np.hstack((m, right))
+            else:
+                # Rare mixed resolutions: render only the label, at a fixed legible size.
+                m = _mask(page.get_pixmap(clip=fitz.Rect(x0,y0,comp["bbox"][2],y1), dpi=300))
+        if not m.any():
             continue
-        pix = fitz.Pixmap(doc, i["xref"])
-        if pix.colorspace is None:           # 마스크형 이미지 → 화면 렌더링으로 대체
-            pix = page.get_pixmap(clip=fitz.Rect(i["bbox"]), dpi=int(72 * i["width"] / max(x1 - x0, 1)))
-        elif pix.alpha or pix.n > 3:
-            pix = fitz.Pixmap(fitz.csRGB, pix)
-        paired = [w for w in wide if abs(w["bbox"][1] - y0) < 4]
-        if paired and start is None and (not labels or y0 < min(l[0] for l in labels)):
-            start = (y0, pix)
-        labels.append((y0, pix, bool(paired)))
-    labels.sort(key=lambda l: l[0])
-    if labels and labels[0][2]:
-        start = (labels[0][0], labels[0][1])
-    if len(labels) >= 2 and labels[-1][2]:
-        end = (labels[-1][0], labels[-1][1])
-    mid = [(y, p) for y, p, paired in labels if not paired]
-    return PageData(pid_override or foot.group("pid"), int(foot.group("page") or 0), header, caps, mid,
-                    start[1] if start else None, end[1] if end else None)
+        paired = any(abs(w["bbox"][1]-y0) < 4 for w in wide)
+        labels.append((y0, packed(m), paired))
+    labels.sort(key=lambda z:z[0])
+    start = labels[0][1] if labels and labels[0][2] and labels[0][0] < 310 else None
+    end = labels[-1][1] if labels and labels[-1][2] and (len(labels)>1 or labels[-1][0]>=310) else None
+    mid = [(y,m) for y,m,paired in labels if not paired]
+    header["pdf_page"] = page.number + 1
+    return PageData(pid_override or foot.group("pid"), page.number + 1, header, caps, mid, start, end)
 
 
 # ------------------------------------------------------------------ 보고서 추출
@@ -275,10 +304,12 @@ class PipeReport:
     events: list[tuple[float, str]] = field(default_factory=list)            # 비결함 캡션(조사시작 등)
     warnings: list[str] = field(default_factory=list)
     pages: int = 0
+    defect_pages: list[int] = field(default_factory=list)
+    page_numbers: list[int] = field(default_factory=list)
 
 
 def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | None = None,
-                is_defect=None) -> tuple[list[PipeReport], GlyphOCR, dict]:
+                is_defect=None, progress=None, cache_path=None) -> tuple[list[PipeReport], GlyphOCR, dict]:
     """PDF 한 권에서 관로별 결함 위치를 추출한다. is_defect(name) → bool (기본: 결함코드 매핑 가능 여부)."""
     import fitz
 
@@ -286,20 +317,55 @@ def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | 
 
     is_defect = is_defect or (lambda n: map_label(n) is not None)
     ocr = ocr or GlyphOCR()
+    import pickle
+    import tempfile
+    path = Path(path)
     doc = fitz.open(str(path))
     n = len(doc) if max_pages is None else min(max_pages, len(doc))
-    pages = [p for p in (parse_page(doc, doc[i]) for i in range(n)) if p is not None]
-    # 1차: 시작(0.00m)·끝(총연장) 라벨로 글꼴 학습
-    for pd_ in pages:
+    cache_key = (4, str(path.resolve()), path.stat().st_size, path.stat().st_mtime_ns, n)
+    cache = open(cache_path, "a+b") if cache_path else tempfile.TemporaryFile()
+    cache.seek(0)
+    try:
+        valid = pickle.load(cache) == cache_key
+        cache.seek(-8, 2)
+        valid = valid and cache.read() == b"CCTVEND!"
+    except (EOFError, ValueError, OSError, pickle.UnpicklingError):
+        valid = False
+    if not valid:
+        cache.seek(0); cache.truncate()
+        pickle.dump(cache_key, cache)
+        count = 0
+        for i in range(n):
+            pd_ = parse_page(doc, doc[i])
+            pickle.dump(pd_, cache, protocol=5)
+            if pd_ is not None:
+                count += 1
+            if progress and ((i+1) % 100 == 0 or i+1 == n):
+                progress({"phase":"parse", "page":i+1, "total":n, "parsed":count})
+        cache.write(b"CCTVEND!")
+        cache.flush()
+    doc.close()
+
+    def pages():
+        cache.seek(0); pickle.load(cache)
+        for _ in range(n):
+            pd_ = pickle.load(cache)
+            if pd_ is not None:
+                yield pd_
+
+    # All native bitmaps stay on disk, keeping the 12,312-page report bounded in memory.
+    for pd_ in pages():
         if pd_.start_label is not None:
             ocr.learn(_mask(pd_.start_label), "0.00m")
         if pd_.end_label is not None and "length" in pd_.header:
             ocr.learn(_mask(pd_.end_label), f"{pd_.header['length']:.2f}m")
     reports: dict[str, PipeReport] = {}
-    stats = {"pages": len(pages), "labels": 0, "unread": 0, "mismatch_pages": 0}
-    for pd_ in pages:
+    stats = {"pages": 0, "total_pages":n, "labels": 0, "unread": 0, "mismatch_pages": 0}
+    for pd_ in pages():
+        stats["pages"] += 1
         rep = reports.setdefault(pd_.pipe_id, PipeReport(pd_.pipe_id, Path(str(path)).name))
         rep.pages += 1
+        rep.page_numbers.append(pd_.page_no)
         rep.header.update({k: v for k, v in pd_.header.items() if k not in rep.header})
         values = []
         for _y, pix in pd_.labels:
@@ -325,13 +391,16 @@ def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | 
             for _y, _x, name, grade in caps:
                 if grade and is_defect(name):
                     rep.defects.append((float("nan"), name, GRADE5[grade]))
+                    rep.defect_pages.append(pd_.page_no)
             continue
         for v, (_y, _x, name, grade) in zip(values, caps):
             pos = float("nan") if v is None else v
             if grade and is_defect(name):
                 rep.defects.append((pos, name, GRADE5[grade]))
+                rep.defect_pages.append(pd_.page_no)
             else:
                 rep.events.append((pos, name))
+    cache.close()
     return list(reports.values()), ocr, stats
 
 
@@ -348,9 +417,9 @@ def write_survey(reports: list[PipeReport], path: str | Path, manual: str = "201
     ws.title = "관로제원"
     ws.append(["관번", "관종", "관경(mm)", "도면연장(m)", "촬영연장(m)", "주행거리(m)", "배수방식", "적용매뉴얼",
                "조사기관 구조상태(최대)", "조사기관 구조상태(평균)", "조사기관 운영상태(최대)", "조사기관 운영상태(평균)",
-               "출처", "추출경고"])
+               "출처", "추출경고", "관 본 경계(m)", "PDF 페이지"])
     ws2 = wb.create_sheet("결함내역")
-    ws2.append(["관번", "거리(m)", "결함코드", "결함내용", "구조등급", "운영등급", "비고"])
+    ws2.append(["관번", "거리(m)", "결함코드", "결함내용", "구조등급", "운영등급", "비고", "PDF 페이지"])
     for r in reports:
         h = r.header
         L = h.get("length")
@@ -361,15 +430,20 @@ def write_survey(reports: list[PipeReport], path: str | Path, manual: str = "201
         ws.append([r.pipe_id, MATERIAL_MAP.get(str(h.get("material", "")).replace("(HP)", ""), h.get("material")),
                    int(dia) if dia else None, L, L, run, h.get("kind"), manual,
                    h.get("struct_max"), h.get("struct_avg"), h.get("oper_max"), h.get("oper_avg"),
-                   r.source, " / ".join(r.warnings)[:250]])
-        for pos, name, g in r.defects:
+                   r.source, " / ".join(r.warnings)[:250],
+                   __import__("json").dumps(sorted({pos for pos,name,g in r.defects
+                      if pos == pos and 0 < pos < L and map_label(name) in {"JD","JF","JS"}} |
+                      {pos for pos,name in r.events if pos == pos and 0 < pos < L and "이음부" in name and "존재" in name})),
+                   ",".join(map(str,r.page_numbers))])
+        for di, (pos, name, g) in enumerate(r.defects):
             code = map_label(name)
             if code is None:
                 continue
             struct = code not in OPERATIONAL_STATE
             note = "CCTV 보고서 위치" if pos == pos else "위치 미확정"
             ws2.append([r.pipe_id, pos if pos == pos else None, trans.get(code, code), name,
-                        g if struct else None, None if struct else g, note])
+                        g if struct else None, None if struct else g, note,
+                        r.defect_pages[di] if di < len(r.defect_pages) else None])
     for w in (ws, ws2):
         for c in w[1]:
             c.font = Font(bold=True)

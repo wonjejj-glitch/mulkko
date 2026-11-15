@@ -205,7 +205,7 @@ k[2].metric("부분보수", f"{n_patch} 개소", f"{n_patch - sum(d.n_patch_site
 k[3].metric("굴착교체", f"{_len(res, ['굴착교체(증경)', '굴착교체(동경)']):,.1f} m")
 k[4].metric("검토 경고", f"{len(res.warnings)} 건")
 
-tabs = st.tabs(["📊 총괄", "📋 관로별 조서", "🔎 관로 상세", "🧩 병합내역", "📐 수량·공사비", "📈 민감도", "⚠️ 경고", "⬇️ 출력"])
+tabs = st.tabs(["📊 총괄", "📋 관로별 조서", "🔎 관로 상세", "🧩 병합내역", "📐 수량·공사비", "📈 민감도", "⚠️ 경고", "⬇️ 출력", "🕳️ 맨홀"])
 
 with tabs[0]:
     summary = T.summary_by_method(res)
@@ -328,3 +328,7 @@ with tabs[7]:
     st.download_button("🧩 AutoLISP 주석 스크립트 (.lsp)",
                        build_lisp(res).replace("\n", "\r\n").encode(enc, errors="replace"),
                        file_name="gp_defect_annot.lsp", mime="text/plain")
+
+with tabs[8]:
+    from report_ui.manhole_tab import render as render_manhole
+    render_manhole(project)

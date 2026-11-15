@@ -26,19 +26,53 @@ def _band(v: float, bands) -> int:
     return 1
 
 
-def check_survey_grades(survey_path: str | Path, cfg: dict) -> tuple[pd.DataFrame, dict]:
-    """결함 위치가 있는 조서(예: CCTV 보고서 PDF 추출본)로 도구 상태등급(최대·평균)을 계산해
-    조서의 '조사기관 구조상태(최대/평균)' 열과 비교한다. 최대값(1m 합산)까지 정확히 검증된다."""
-    import copy
+def observed_unit_scores(pipe, cfg: dict, boundaries: list[float]) -> tuple[float, float, int]:
+    """보고서에 표시된 실제 이음부를 본 경계로 사용. 이음부 결함은 전·후 본에 적용."""
+    import bisect
+    import math
+    from rehab_decision_ve.scoring import band, section_score
+    joints = sorted(set(float(x) for x in boundaries if math.isfinite(float(x)) and 0 < float(x) < pipe.plan_length_m))
+    scores = []
+    for state in ("structural", "operational"):
+        worst = [0] * (len(joints)+1)
+        for d in pipe.defects:
+            if d.state != state:
+                continue
+            a = bisect.bisect_right(joints, d.start_cal)
+            b = bisect.bisect_right(joints, d.end_cal)
+            units = set(range(a,b+1))
+            if d.code in cfg["condition_grading"].get("joint_codes", []) and d.end_distance_cal is None:
+                for k,x in enumerate(joints):
+                    if abs(d.distance_cal-x) <= 1e-6:
+                        units.update((k,k+1))
+            for k in units:
+                worst[k] = max(worst[k],d.score)
+        scores.append(section_score([band(x,cfg) for x in worst]))
+    return scores[0], scores[1], len(joints)+1
 
+
+def check_survey_grades(survey_path: str | Path, cfg: dict) -> tuple[pd.DataFrame, dict]:
+    """2017 평균 점수는 ±0.05, 2015 문자 등급은 동등 비교. 미확정 위치 관로는 집계 제외."""
+    import copy
+    import json
     from common.manuals import manual_view
     from defect_processor.calibration import calibrate_pipe
-    from defect_processor.loader import load_survey
+    from defect_processor.loader import load_survey, read_tables
     from rehab_decision_ve.scoring import evaluate
 
     raw = pd.read_excel(survey_path, sheet_name="관로제원", dtype=object)
     agency = {str(r["관번"]).strip(): r for _, r in raw.iterrows()}
+    _, defects = read_tables(survey_path, cfg)
+    missing = set(defects.loc[pd.to_numeric(defects["distance_m"], errors="coerce").isna(), "pipe_id"].astype(str)) if len(defects) else set()
     pipes, _w = load_survey(survey_path, cfg)
+    def clean(v):
+        return "" if pd.isna(v) else str(v).strip()
+    def number(v):
+        try:
+            x = float(v)
+            return x if pd.notna(x) else None
+        except (ValueError, TypeError):
+            return None
     rows = []
     for p in copy.deepcopy(pipes):
         a = agency.get(p.pipe_id)
@@ -48,18 +82,44 @@ def check_survey_grades(survey_path: str | Path, cfg: dict) -> tuple[pd.DataFram
         calibrate_pipe(p, pcfg)
         ev = evaluate(p, pcfg)
         names = pcfg["condition_grading"].get("grade_names", {})
-        ag_max = str(a.get("조사기관 구조상태(최대)") or "").strip()
-        ag_avg = str(a.get("조사기관 구조상태(평균)") or "").strip()
+        ag_max = clean(a.get("조사기관 구조상태(최대)"))
+        ag_avg = clean(a.get("조사기관 구조상태(평균)"))
+        ag_oper = clean(a.get("조사기관 운영상태(평균)"))
         tool_max = names.get(ev["condition_grade"], ev["condition_grade"])
         tool_avg = names.get(str(ev.get("struct_avg_grade", "")), "")
-        rows.append({"관번": p.pipe_id, "매뉴얼": pcfg["manual"], "결함수": len(p.defects),
-                     "도구 최대값(점)": ev.get("struct_max"), "도구 최대등급": tool_max, "조사기관 최대등급": ag_max,
-                     "최대 일치": tool_max == ag_max, "도구 평균값": ev.get("struct_avg"), "도구 평균등급": tool_avg,
-                     "조사기관 평균등급": ag_avg, "평균 일치": tool_avg == ag_avg})
+        valid = p.pipe_id not in missing
+        row = {"관번":p.pipe_id,"매뉴얼":pcfg["manual"],"결함수":len(p.defects),
+               "검증상태":"대조 가능" if valid else "위치 미확정: 대조 제외",
+               "도구 최대값(점)":ev.get("struct_max"),"도구 최대등급":tool_max,"조사기관 최대등급":ag_max,
+               "최대 일치":tool_max == ag_max if ag_max and valid else None,
+               "도구 평균값":ev.get("struct_avg"),"도구 평균등급":tool_avg,
+               "조사기관 평균등급":ag_avg,"평균 일치":tool_avg == ag_avg if ag_avg and valid else None}
+        if pcfg["condition_grading"].get("method") == "unit_max_avg":
+            struct, oper = ev["condition_score"],ev["oper_score"]
+            basis,n_units = "기본 관종별 본 길이",None
+            raw_bounds = clean(a.get("관 본 경계(m)"))
+            if raw_bounds:
+                bounds = json.loads(raw_bounds)
+                struct,oper,n_units = observed_unit_scores(p,pcfg,bounds)
+                basis = "보고서 이음부 표기 기준(누락 가능)"
+            ag_s, ag_o = number(ag_avg),number(ag_oper)
+            row.update({"도구 평균값":struct,"도구 평균등급":None,"조사기관 평균등급":ag_s,
+                        "구조 차이":round(struct-ag_s,2) if ag_s is not None and valid else None,
+                        "평균 일치":abs(struct-ag_s)<=0.050000001 if ag_s is not None and valid else None,
+                        "도구 운영평균":oper,"조사기관 운영평균":ag_o,
+                        "운영 차이":round(oper-ag_o,2) if ag_o is not None and valid else None,
+                        "운영 일치":abs(oper-ag_o)<=0.050000001 if ag_o is not None and valid else None,
+                        "본수":n_units,"본 경계 기준":basis,
+                        "기본간격 구조평균":ev["condition_score"],"기본간격 운영평균":ev["oper_score"]})
+        rows.append(row)
     df = pd.DataFrame(rows)
-    ok = df[(df["조사기관 최대등급"] != "") & (df["조사기관 최대등급"] != "nan")] if len(df) else df
-    return df, {"n": len(ok), "max_match": float(ok["최대 일치"].mean() * 100) if len(ok) else 0.0,
-                "avg_match": float(ok["평균 일치"].mean() * 100) if len(ok) else 0.0}
+    def result(column):
+        v = df[column].dropna() if column in df else pd.Series(dtype=bool)
+        return len(v),float(v.astype(bool).mean()*100) if len(v) else 0.0
+    nmax,maxrate=result("최대 일치"); ns,srate=result("평균 일치"); no,orate=result("운영 일치")
+    cols = [c for c in ("최대 일치","평균 일치","운영 일치") if c in df]
+    n = int(df[cols].notna().any(axis=1).sum()) if cols else 0
+    return df,{"n":n,"max_n":nmax,"avg_n":ns,"oper_n":no,"max_match":maxrate,"avg_match":srate,"oper_match":orate}
 
 
 def check_agency(paths: list[str | Path]) -> tuple[pd.DataFrame, dict]:

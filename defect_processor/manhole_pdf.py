@@ -179,9 +179,13 @@ def write_workbook(recs: list[ManholeRecord], rows: list[dict], path: str | Path
                       for k, v in s["by_region"].items()]).to_excel(w, sheet_name="1_요약", index=False, startrow=7)
         pd.DataFrame(rows).to_excel(w, sheet_name="2_맨홀조서", index=False)
         pd.DataFrame(drows).to_excel(w, sheet_name="3_맨홀결함", index=False)
-        rdf = pd.DataFrame(rep, columns=["기록번호", "지역", "상류맨홀", "하류맨홀", "구조등급", "운영등급", "보수대상", "공법", "단위", "수량", "단가", "금액"])
+        rdf = pd.DataFrame(rep, columns=["기록번호", "지역", "상류맨홀", "하류맨홀", "구조등급", "운영등급", "보수대상", "공법", "단위", "수량", "단가", "금액", "단가근거"])
         rdf.to_excel(w, sheet_name="4_보수공법", index=False)
         if len(rdf):
-            sm = rdf.groupby(["공법", "단위"], as_index=False).agg(개소=("기록번호", "count"), 수량=("수량", "sum"), 금액=("금액", "sum"))
+            from rehab_decision_ve.manhole import repair_rules
+            works = repair_rules()["works"]
+            sm = rdf.groupby(["공법", "단위"], as_index=False, sort=False).agg(개소=("기록번호", "count"), 수량=("수량", "sum"), 금액=("금액", "sum"))
+            sm["단가근거"] = [works.get(k, {}).get("price_basis", "") for k in sm["공법"]]
+            sm["설계 수량(참고)"] = [works.get(k, {}).get("design_qty") for k in sm["공법"]]
             sm.to_excel(w, sheet_name="5_공법별수량", index=False)
     return path
