@@ -1,0 +1,76 @@
+[TITLE]
+;;Project Title/Notes
+노후하수관로 정비 샘플 모델 (자동 생성)
+
+[OPTIONS]
+FLOW_UNITS           LPS
+INFILTRATION         HORTON
+FLOW_ROUTING         DYNWAVE
+LINK_OFFSETS         DEPTH
+START_DATE           01/01/2026
+END_DATE             01/01/2026
+
+[JUNCTIONS]
+;;Name  Elevation  MaxDepth  InitDepth  SurDepth  Aponded
+MH-01      30.700    1.700      0      0      0
+MH-02      30.200    1.900      0      0      0
+MH-03      29.750    2.100      0      0      0
+MH-04      29.300    2.300      0      0      0
+MH-05      29.144    2.056      0      0      0
+MH-06      29.048    1.902      0      0      0
+MH-07      27.900    2.900      0      0      0
+MH-08      26.000    4.400      0      0      0
+MH-09      25.835    4.265      0      0      0
+MH-11      30.800    1.500      0      0      0
+MH-12      30.950    1.550      0      0      0
+MH-13      31.100    1.700      0      0      0
+
+[OUTFALLS]
+;;Name  Elevation  Type  Stage Data  Gated
+MH-10      28.156  FREE  NO
+
+[CONDUITS]
+;;Name  From  To  Length  Roughness  InOffset  OutOffset  InitFlow  MaxFlow
+P-001  MH-01  MH-02    45.00  0.013  0.000  0.320  0  0
+P-002  MH-02  MH-03    40.00  0.013  0.000  0.290  0  0
+P-003  MH-03  MH-04    44.00  0.013  0.000  0.318  0  0
+P-004  MH-04  MH-05    52.00  0.013  0.000  0.000  0  0
+P-005  MH-05  MH-06    38.00  0.013  0.056  0.000  0  0
+P-006  MH-06  MH-07    35.00  0.011  0.302  1.310  0  0
+P-007  MH-07  MH-08    60.00  0.013  0.000  1.720  0  0
+P-008  MH-08  MH-09    55.00  0.013  0.000  0.000  0  0
+P-009  MH-11  MH-04    42.00  0.010  0.000  1.332  0  0
+P-010  MH-12  MH-11    30.00  0.013  0.000  0.050  0  0
+P-011  MH-13  MH-12    50.00  0.013  0.000  0.000  0  0
+P-012  MH-09  MH-10    36.00  0.013  2.465  0.000  0  0
+
+[XSECTIONS]
+;;Link  Shape  Geom1  Geom2  Geom3  Geom4  Barrels
+P-001  CIRCULAR  0.300  0  0  0  1
+P-002  CIRCULAR  0.300  0  0  0  1
+P-003  CIRCULAR  0.350  0  0  0  1
+P-004  CIRCULAR  0.400  0  0  0  1
+P-005  CIRCULAR  0.300  0  0  0  1
+P-006  CIRCULAR  0.250  0  0  0  1
+P-007  CIRCULAR  0.400  0  0  0  1
+P-008  CIRCULAR  0.600  0  0  0  1
+P-009  CIRCULAR  0.300  0  0  0  1
+P-010  CIRCULAR  0.250  0  0  0  1
+P-011  CIRCULAR  0.450  0  0  0  1
+P-012  CIRCULAR  0.300  0  0  0  1
+
+[COORDINATES]
+;;Node  X-Coord  Y-Coord
+MH-01   198500.000  551200.000
+MH-02   198544.316  551192.186
+MH-03   198582.953  551181.833
+MH-04   198626.786  551177.998
+MH-05   198652.786  551132.965
+MH-06   198659.385  551095.542
+MH-07   198656.335  551060.675
+MH-08   198645.916  551001.587
+MH-09   198618.416  550953.956
+MH-10   198649.593  550935.956
+MH-11   198619.493  551136.636
+MH-12   198619.493  551106.636
+MH-13   198619.493  551056.636

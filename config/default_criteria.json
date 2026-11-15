@@ -1,0 +1,672 @@
+{
+  "meta": {
+    "name": "노후하수관로 정비 기본·실시설계 기본 판정기준",
+    "version": "1.0.0",
+    "currency": "KRW",
+    "note": "단가는 개략공사비 산정용 예시값(직접공사비 기준)입니다. 실제 설계 시 해당 연도 표준품셈·물가자료·견적 단가로 교체하십시오."
+  },
+  "manual": "2017",
+  "manual_notes": "적용 매뉴얼 기본값(2015/2017/2025). 결함코드·점수·상태등급·정비판단 규칙은 config/manuals/<연도>.json. 조서의 '적용매뉴얼' 열로 관로별 지정 가능(혼용 사업).",
+  "criteria": {
+    "merge_gap_m": 1.2,
+    "repair_margin_m": 0.3,
+    "partial_repair_sizes_m": [
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0
+    ],
+    "partial_repair_size_factor": {
+      "1.0": 1.0,
+      "1.5": 1.3,
+      "2.0": 1.6,
+      "2.5": 1.9,
+      "3.0": 2.2
+    },
+    "defect_rate_method": "joint_count",
+    "defect_rate_threshold_pct": 25.0,
+    "breakeven_ratio": 0.75,
+    "length_mismatch_warn_ratio": 0.05,
+    "partial_excavation_min_length_m": 4.0,
+    "partial_excavation_margin_m": 1.5,
+    "max_partial_excavations": 2,
+    "partial_excavation_max_length_ratio": 0.4,
+    "partial_vs_full_excavation_ratio": 0.85,
+    "upsize_steps": 1,
+    "overhead_ratio": 0.0,
+    "repair_min_score": 20,
+    "repair_all_grades": false,
+    "lateral_as_patch": false,
+    "blocker_policy": "default",
+    "manual_full_rule": true,
+    "oper_min_score": 20,
+    "capacity_limit_ratio": 1.0,
+    "min_slope": 0.0005,
+    "swmm_flow_ratio_limit": 1.0,
+    "swmm_surcharge_hours_limit": 1.0
+  },
+  "gis": {
+    "default_crs": "EPSG:5186",
+    "match_tolerance_m": 3.0,
+    "use_gis_length": false,
+    "length_warn_ratio": 0.05,
+    "node_aliases": {
+      "name": [
+        "맨홀번호",
+        "맨홀명",
+        "맨홀",
+        "관리번호",
+        "MH",
+        "MH_ID",
+        "MHID",
+        "NODE",
+        "NODE_ID",
+        "NAME",
+        "ID"
+      ],
+      "ground_el": [
+        "지반고",
+        "GL",
+        "GROUND",
+        "GROUND_EL",
+        "ELEV",
+        "표고"
+      ]
+    },
+    "method_colors_hex": {
+      "굴착교체(증경)": "#d62728",
+      "굴착교체(동경)": "#c51bcb",
+      "부분굴착+비굴착": "#ff7f0e",
+      "비굴착 전체보수": "#1f4fd6",
+      "비굴착 부분보수": "#2ca02c",
+      "준설/세정": "#17becf",
+      "개량제외": "#9e9e9e"
+    },
+    "note": "default_crs: 좌표계 정보가 없는 입력(조서 좌표·GIS 파일)에 가정하는 좌표계. 국내 평면직각좌표계 EPSG:5186(중부원점 2010), 5185(서부), 5187(동부), 5188(동해)."
+  },
+  "rehab_hydraulics": {
+    "new_pipe_n": 0.01,
+    "cipp_n": 0.01,
+    "cipp_thickness_min_mm": 6.0,
+    "cipp_thickness_ratio": 0.025,
+    "note": "정비 후 통수능 비교용 개략값. CIPP는 라이너 두께만큼 내경 감소(두께=max(최소, 관경×비율)), 조도계수는 신관·CIPP 값 적용."
+  },
+  "manning_n": {
+    "흄관": 0.013,
+    "콘크리트관": 0.013,
+    "VR관": 0.011,
+    "도관": 0.013,
+    "PE관": 0.01,
+    "이중벽PE관": 0.01,
+    "PVC관": 0.01,
+    "고강성PVC관": 0.01,
+    "주철관": 0.013,
+    "default": 0.013
+  },
+  "cost_statement": {
+    "note": "요율·비목은 개략 검토용 예시입니다. 내역서 제출 전 해당 연도 원가계산 제비율(조달청/지자체 기준)과 품셈 단가로 반드시 교체하십시오. 엑셀 원가계산서의 요율 칸을 직접 고쳐도 전체가 재계산됩니다.",
+    "cost_split": {
+      "토공": {
+        "material": 0.0,
+        "labor": 0.35,
+        "expense": 0.65
+      },
+      "가시설공": {
+        "material": 0.45,
+        "labor": 0.25,
+        "expense": 0.3
+      },
+      "관부설공": {
+        "material": 0.55,
+        "labor": 0.25,
+        "expense": 0.2
+      },
+      "포장공": {
+        "material": 0.45,
+        "labor": 0.2,
+        "expense": 0.35
+      },
+      "비굴착보수공": {
+        "material": 0.45,
+        "labor": 0.2,
+        "expense": 0.35
+      },
+      "부대공": {
+        "material": 0.05,
+        "labor": 0.35,
+        "expense": 0.6
+      },
+      "default": {
+        "material": 0.3,
+        "labor": 0.3,
+        "expense": 0.4
+      }
+    },
+    "rates": [
+      {
+        "key": "indirect_labor",
+        "name": "간접노무비",
+        "rate": 0.105,
+        "base": "직접노무비"
+      },
+      {
+        "key": "industrial_accident",
+        "name": "산재보험료",
+        "rate": 0.037,
+        "base": "노무비계"
+      },
+      {
+        "key": "employment",
+        "name": "고용보험료",
+        "rate": 0.0101,
+        "base": "노무비계"
+      },
+      {
+        "key": "health",
+        "name": "건강보험료",
+        "rate": 0.03545,
+        "base": "직접노무비"
+      },
+      {
+        "key": "care",
+        "name": "노인장기요양보험료",
+        "rate": 0.1295,
+        "base": "건강보험료"
+      },
+      {
+        "key": "pension",
+        "name": "국민연금보험료",
+        "rate": 0.045,
+        "base": "직접노무비"
+      },
+      {
+        "key": "retirement",
+        "name": "퇴직공제부금비",
+        "rate": 0.023,
+        "base": "직접노무비"
+      },
+      {
+        "key": "safety",
+        "name": "산업안전보건관리비",
+        "rate": 0.0293,
+        "base": "재료비+직접노무비"
+      },
+      {
+        "key": "environment",
+        "name": "환경보전비",
+        "rate": 0.005,
+        "base": "직접공사비"
+      },
+      {
+        "key": "other_expense",
+        "name": "기타경비",
+        "rate": 0.05,
+        "base": "재료비+노무비계"
+      },
+      {
+        "key": "general_admin",
+        "name": "일반관리비",
+        "rate": 0.06,
+        "base": "순공사원가"
+      },
+      {
+        "key": "profit",
+        "name": "이윤",
+        "rate": 0.15,
+        "base": "노무비계+경비계+일반관리비"
+      },
+      {
+        "key": "vat",
+        "name": "부가가치세",
+        "rate": 0.1,
+        "base": "공급가액"
+      }
+    ]
+  },
+  "standard_diameters_mm": [
+    200,
+    250,
+    300,
+    350,
+    400,
+    450,
+    500,
+    600,
+    700,
+    800,
+    900,
+    1000
+  ],
+  "pipe_unit_length_m": {
+    "흄관": 2.5,
+    "콘크리트관": 2.5,
+    "VR관": 2.5,
+    "도관": 1.0,
+    "PE관": 6.0,
+    "이중벽PE관": 6.0,
+    "PVC관": 6.0,
+    "고강성PVC관": 6.0,
+    "주철관": 6.0,
+    "default": 2.5
+  },
+  "grade_alias": {
+    "대": 5,
+    "중": 4,
+    "소": 3,
+    "A": 5,
+    "B": 4,
+    "C": 3,
+    "D": 2,
+    "E": 1,
+    "상": 5,
+    "하": 3
+  },
+  "excavation": {
+    "slope_cut_max_depth_m": 2.5,
+    "simple_shoring_max_depth_m": 4.0,
+    "slope_ratio": 0.3,
+    "work_space_each_side_m": 0.3,
+    "min_bottom_width_m": 0.8,
+    "shoring_work_space_each_side_m": 0.5,
+    "foundation_thickness_m": 0.15,
+    "sand_cover_above_crown_m": 0.3,
+    "outer_diameter_factor": 1.18,
+    "pavement_extra_width_m": 0.3,
+    "soil_bulking_factor": 1.25,
+    "default_pavement": "아스콘"
+  },
+  "unit_prices": {
+    "cipp_full_per_m": {
+      "200": 380000,
+      "250": 420000,
+      "300": 460000,
+      "350": 520000,
+      "400": 590000,
+      "450": 670000,
+      "500": 760000,
+      "600": 930000,
+      "700": 1150000,
+      "800": 1380000,
+      "900": 1640000,
+      "1000": 1920000
+    },
+    "partial_repair_per_site": {
+      "200": 1800000,
+      "250": 2000000,
+      "300": 2200000,
+      "350": 2450000,
+      "400": 2700000,
+      "450": 3000000,
+      "500": 3300000,
+      "600": 3900000,
+      "700": 4600000,
+      "800": 5400000,
+      "900": 6200000,
+      "1000": 7000000
+    },
+    "dredging_per_m": {
+      "200": 5500,
+      "250": 6000,
+      "300": 6500,
+      "350": 7200,
+      "400": 8000,
+      "450": 8800,
+      "500": 9500,
+      "600": 11500,
+      "700": 13500,
+      "800": 16000,
+      "900": 18500,
+      "1000": 21000
+    },
+    "cleaning_per_m": {
+      "200": 2500,
+      "250": 2800,
+      "300": 3100,
+      "350": 3400,
+      "400": 3800,
+      "450": 4200,
+      "500": 4600,
+      "600": 5300,
+      "700": 6000,
+      "800": 6700,
+      "900": 7300,
+      "1000": 8000
+    },
+    "bypass_per_span": {
+      "200": 380000,
+      "250": 420000,
+      "300": 480000,
+      "350": 550000,
+      "400": 630000,
+      "450": 720000,
+      "500": 820000,
+      "600": 1050000,
+      "700": 1350000,
+      "800": 1700000,
+      "900": 2100000,
+      "1000": 2600000
+    },
+    "pipe_install_per_m": {
+      "200": 120000,
+      "250": 150000,
+      "300": 190000,
+      "350": 240000,
+      "400": 300000,
+      "450": 360000,
+      "500": 430000,
+      "600": 580000,
+      "700": 760000,
+      "800": 950000,
+      "900": 1180000,
+      "1000": 1420000
+    },
+    "pipe_removal_per_m": {
+      "200": 18000,
+      "250": 20000,
+      "300": 23000,
+      "350": 26000,
+      "400": 30000,
+      "450": 34000,
+      "500": 38000,
+      "600": 45000,
+      "700": 51000,
+      "800": 56000,
+      "900": 61000,
+      "1000": 65000
+    },
+    "cctv_per_m": 3800,
+    "lateral_cut_per_site": 320000,
+    "excavation_per_m3": 13500,
+    "backfill_per_m3": 8200,
+    "sand_foundation_per_m3": 42000,
+    "surplus_soil_per_m3": 14000,
+    "simple_shoring_per_m2": 78000,
+    "steel_sheathing_per_m2": 135000,
+    "pavement_break_per_m2": {
+      "아스콘": 7500,
+      "콘크리트": 16000,
+      "보도블럭": 6000,
+      "비포장": 0
+    },
+    "pavement_restore_per_m2": {
+      "아스콘": 48000,
+      "콘크리트": 62000,
+      "보도블럭": 38000,
+      "비포장": 0
+    }
+  },
+  "column_aliases": {
+    "pipes": {
+      "pipe_id": [
+        "관번",
+        "관로번호",
+        "관로ID",
+        "관거번호",
+        "관로명",
+        "PIPE_ID",
+        "PIPEID",
+        "ID"
+      ],
+      "from_mh": [
+        "시점맨홀",
+        "상류맨홀",
+        "시점",
+        "시점MH",
+        "FROM_MH",
+        "US_MH",
+        "UPSTREAM"
+      ],
+      "to_mh": [
+        "종점맨홀",
+        "하류맨홀",
+        "종점",
+        "종점MH",
+        "TO_MH",
+        "DS_MH",
+        "DOWNSTREAM"
+      ],
+      "material": [
+        "관종",
+        "재질",
+        "관재질",
+        "MATERIAL"
+      ],
+      "diameter_mm": [
+        "관경",
+        "관경(mm)",
+        "구경",
+        "DIA",
+        "DIAMETER"
+      ],
+      "plan_length_m": [
+        "도면연장",
+        "도면연장(m)",
+        "GIS연장",
+        "설계연장",
+        "실측연장",
+        "PLAN_LEN",
+        "LENGTH"
+      ],
+      "cctv_length_m": [
+        "촬영연장",
+        "촬영연장(m)",
+        "조사연장",
+        "CCTV연장",
+        "CCTV_LEN"
+      ],
+      "avg_depth_m": [
+        "평균심도",
+        "평균심도(m)",
+        "평균관저심도",
+        "심도",
+        "DEPTH"
+      ],
+      "pavement": [
+        "포장",
+        "포장종류",
+        "포장구분",
+        "PAVEMENT"
+      ],
+      "survey_direction": [
+        "조사방향",
+        "촬영방향",
+        "DIRECTION"
+      ],
+      "capacity_insufficient": [
+        "통수능부족",
+        "SWMM통수능부족",
+        "통수능",
+        "CAP_FLAG"
+      ],
+      "capacity_ratio": [
+        "통수능비",
+        "유량/통수능",
+        "Q/Qcap",
+        "CAP_RATIO"
+      ],
+      "required_diameter_mm": [
+        "필요관경",
+        "개량관경",
+        "REQ_DIA"
+      ],
+      "design_flow_lps": [
+        "설계유량",
+        "계획유량",
+        "설계유량(L/s)",
+        "계획유량(L/s)",
+        "계획하수량",
+        "Q_DESIGN",
+        "DESIGN_FLOW"
+      ],
+      "roughness_n": [
+        "조도계수",
+        "Manning n",
+        "n값",
+        "MANNING_N",
+        "ROUGHNESS"
+      ],
+      "from_x": [
+        "시점X",
+        "시점x",
+        "FROM_X",
+        "X1"
+      ],
+      "from_y": [
+        "시점Y",
+        "시점y",
+        "FROM_Y",
+        "Y1"
+      ],
+      "to_x": [
+        "종점X",
+        "종점x",
+        "TO_X",
+        "X2"
+      ],
+      "to_y": [
+        "종점Y",
+        "종점y",
+        "TO_Y",
+        "Y2"
+      ],
+      "from_ground_el": [
+        "시점지반고",
+        "상류지반고",
+        "FROM_GL"
+      ],
+      "from_invert_el": [
+        "시점관저고",
+        "상류관저고",
+        "FROM_IL"
+      ],
+      "to_ground_el": [
+        "종점지반고",
+        "하류지반고",
+        "TO_GL"
+      ],
+      "to_invert_el": [
+        "종점관저고",
+        "하류관저고",
+        "TO_IL"
+      ],
+      "manual": [
+        "적용매뉴얼",
+        "조사매뉴얼",
+        "판정매뉴얼",
+        "매뉴얼",
+        "MANUAL"
+      ],
+      "survey_length_m": [
+        "주행거리",
+        "주행거리(m)",
+        "조사길이",
+        "조사길이(m)",
+        "조사연장",
+        "SURVEY_LEN"
+      ]
+    },
+    "defects": {
+      "pipe_id": [
+        "관번",
+        "관로번호",
+        "관로ID",
+        "관거번호",
+        "PIPE_ID",
+        "ID"
+      ],
+      "distance_m": [
+        "거리",
+        "거리(m)",
+        "위치",
+        "위치(m)",
+        "시점거리",
+        "결함위치",
+        "DIST"
+      ],
+      "end_distance_m": [
+        "종료거리",
+        "종료거리(m)",
+        "끝거리",
+        "연속종료",
+        "END_DIST"
+      ],
+      "code": [
+        "결함코드",
+        "코드",
+        "CODE"
+      ],
+      "description": [
+        "결함내용",
+        "결함명",
+        "내용",
+        "결함",
+        "DESC"
+      ],
+      "grade": [
+        "등급",
+        "결함등급",
+        "GRADE"
+      ],
+      "struct_grade": [
+        "구조등급",
+        "구조적등급",
+        "구조"
+      ],
+      "oper_grade": [
+        "운영등급",
+        "운영적등급",
+        "운영"
+      ],
+      "note": [
+        "비고",
+        "위치구분",
+        "NOTE"
+      ]
+    }
+  },
+  "cad": {
+    "plan_text_height": 0.8,
+    "profile_text_height": 0.6,
+    "marker_radius": 0.5,
+    "profile_vertical_exaggeration": 10,
+    "profile_gap": 25.0,
+    "profiles_per_row": 3,
+    "lsp_encoding": "cp949",
+    "font_file": "malgun.ttf",
+    "method_colors": {
+      "굴착교체(증경)": 1,
+      "굴착교체(동경)": 6,
+      "부분굴착+비굴착": 30,
+      "비굴착 전체보수": 5,
+      "비굴착 부분보수": 3,
+      "준설/세정": 4,
+      "개량제외": 8
+    },
+    "method_linetypes": {
+      "굴착교체(증경)": "CONTINUOUS",
+      "굴착교체(동경)": "CONTINUOUS",
+      "부분굴착+비굴착": "DASHED",
+      "비굴착 전체보수": "DASHED",
+      "비굴착 부분보수": "DASHED",
+      "준설/세정": "DOT",
+      "개량제외": "CONTINUOUS"
+    }
+  },
+  "flexible_materials": [
+    "PE",
+    "PVC",
+    "GRP",
+    "유리섬유",
+    "FRP",
+    "CSP",
+    "파형강관",
+    "폴리",
+    "PP관",
+    "HDPE"
+  ],
+  "price_source": {
+    "title": null,
+    "note": "공개판 예시 단가·요율. 실제 설계 단가는 import-prices로 만든 파일을 불러와 사용."
+  }
+}
