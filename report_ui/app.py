@@ -100,7 +100,20 @@ def _won(x: float) -> str:
 
 # ------------------------------------------------------------------ 사이드바
 base_cfg = load_config()
+st.sidebar.markdown("📖 [물꼬 사용 안내](./guide.html) — 넣는 자료·결과·판정 기준·개발 계획")
+
+
+@st.cache_data
+def _survey_template() -> bytes:
+    from defect_processor.template import make_template
+    with tempfile.TemporaryDirectory() as td:
+        return make_template(Path(td) / "t.xlsx").read_bytes()
+
+
 st.sidebar.header("📂 조사 데이터")
+st.sidebar.download_button("📄 조서 입력 양식 받기", _survey_template(), file_name="정밀조사_조서_입력양식.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                           help="관로제원·결함내역 두 시트. 노란 머리글이 필수 열입니다.")
 up_file = st.sidebar.file_uploader("nPASS / PipeAsset 조서 (.xlsx)", type=["xlsx", "xls"])
 if up_file is not None:
     data_bytes, data_name = up_file.getvalue(), up_file.name

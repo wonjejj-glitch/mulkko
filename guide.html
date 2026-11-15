@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>물꼬 사용 안내</title>
+<style>
+  :root { --ink:#1d2a24; --sub:#56675e; --line:#d7e2dc; --soft:#f3f7f5; --accent:#2e8b57; --head:#17485c; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background:#fff; color:var(--ink); font: 15px/1.7 "Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif; padding-top: 40px; }
+  /* 물마루 플랫폼 공통 상단바 */
+  .mm-bar { position: fixed; top: 0; left: 0; right: 0; height: 40px; z-index: 1000; display: flex; align-items: center; gap: 14px;
+            padding: 0 16px; overflow: hidden; background: #0f3d2c; border-bottom: 1px solid #082a1e; color: #ecf6f0;
+            font-family: "Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif; line-height: 1; }
+  .mm-bar a { color: inherit; text-decoration: none; outline-offset: 2px; }
+  .mm-bar a:focus-visible { outline: 2px solid #5cc98d; border-radius: 3px; }
+  .mm-logo { display: flex; align-items: center; gap: 7px; flex: none; font-size: 15px; font-weight: 800; color: #ecf6f0; }
+  .mm-sep { width: 1px; height: 18px; flex: none; background: rgba(156,196,173,.35); }
+  .mm-nav { display: flex; align-items: stretch; gap: 16px; height: 100%; min-width: 0; }
+  .mm-nav a { display: flex; align-items: center; gap: 5px; height: 100%; white-space: nowrap; font-size: 13px; color: #9cc4ad;
+              border-bottom: 2px solid transparent; border-top: 2px solid transparent; }
+  .mm-nav a:hover { color: #ecf6f0; }
+  .mm-nav a[aria-current="page"] { color: #ecf6f0; font-weight: 700; border-bottom-color: #5cc98d; }
+  .mm-nav small { font-size: 12px; font-weight: 400; color: #9cc4ad; }
+  .mm-portal { margin-left: auto; flex: none; font-size: 12px; color: #9cc4ad !important; }
+  .mm-portal:hover { color: #ecf6f0 !important; }
+  @media (max-width: 720px) { .mm-nav small, .mm-portal { display: none; } .mm-bar { gap: 10px; padding: 0 10px; } .mm-nav { gap: 12px; } }
+  @media print { .mm-bar, .toc, .back { display: none; } body { padding-top: 0; } }
+
+  main { max-width: 960px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { font-size: 28px; color: var(--head); margin: 8px 0 4px; }
+  .lead { color: var(--sub); margin: 0 0 18px; }
+  h2 { font-size: 21px; color: var(--head); margin: 40px 0 10px; padding-top: 8px; border-top: 2px solid var(--line); scroll-margin-top: 52px; }
+  h3 { font-size: 16px; margin: 22px 0 6px; }
+  p { margin: 6px 0 10px; }
+  a { color: var(--accent); }
+  .back { display: inline-block; margin: 4px 0 14px; font-size: 14px; }
+  .toc { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; columns: 2; column-gap: 28px; }
+  .toc a { display: block; text-decoration: none; padding: 2px 0; }
+  @media (max-width: 600px) { .toc { columns: 1; } }
+  .tbl { width: 100%; overflow-x: auto; margin: 8px 0 14px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 7px 9px; vertical-align: top; text-align: left; }
+  th { background: #e6f1eb; font-weight: 700; white-space: nowrap; }
+  td:first-child { font-weight: 600; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 10px; margin-right: 4px; white-space: nowrap; }
+  .web { background: #e3f3ea; color: #1f6b43; } .pc { background: #eef0f6; color: #3c4a7a; }
+  .must { background: #fdecea; color: #a1332a; } .opt { background: #f1f3f2; color: #56675e; }
+  .note { border-left: 4px solid var(--accent); background: var(--soft); padding: 10px 14px; margin: 12px 0; border-radius: 0 6px 6px 0; }
+  .warn { border-left-color: #c98a1a; background: #fdf6e8; }
+  ol, ul { padding-left: 22px; margin: 6px 0 10px; }
+  li { margin: 3px 0; }
+  code { background: #eef3f0; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 4px; }
+  .flow span { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 14px; }
+  .flow b { color: var(--sub); }
+  .done { color: #1f6b43; font-weight: 700; } .doing { color: #a86b00; font-weight: 700; } .plan { color: #56675e; font-weight: 700; }
+  footer { margin-top: 48px; color: var(--sub); font-size: 13px; border-top: 1px solid var(--line); padding-top: 12px; }
+</style>
+</head>
+<body>
+<!-- 물마루 공통 상단바: 메뉴 순서는 물의 흐름(수원 → 공급 → 배출·정비) = 물담·물길·물꼬, 포털과 같게 -->
+<header class="mm-bar" role="navigation" aria-label="물마루 플랫폼">
+  <a class="mm-logo" href="https://wonjejj-glitch.github.io/mulmaru/" title="물마루 포털"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 15.5c2.6 0 3.9-1.7 5.3-4.5C8.8 8 10.2 4.8 12 4.8s3.2 3.2 4.7 6.2c1.4 2.8 2.7 4.5 5.3 4.5" fill="none" stroke="#5cc98d" stroke-width="2.3" stroke-linecap="round"/><path d="M2 19.5c2 0 3-1 5-1s3 1 5 1 3-1 5-1 3 1 5 1" fill="none" stroke="#ecf6f0" stroke-width="1.6" stroke-linecap="round" opacity=".7"/></svg>물마루</a>
+  <span class="mm-sep" aria-hidden="true"></span>
+  <nav class="mm-nav">
+    <a href="https://wonjejj-glitch.github.io/garam/">물담<small>댐 용수공급</small></a>
+    <a href="https://wonjejj-glitch.github.io/mulgil/">물길<small>관망해석</small></a>
+    <a href="https://wonjejj-glitch.github.io/mulkko/" aria-current="page">물꼬<small>하수관로 정비</small></a>
+  </nav>
+  <a class="mm-portal" href="https://wonjejj-glitch.github.io/mulmaru/">포털</a>
+</header>
+
+<main>
+<a class="back" href="./">← 물꼬 프로그램 열기</a>
+<h1>물꼬 사용 안내</h1>
+<p class="lead">노후하수관로 정비 통합 설계 플랫폼 — 정밀조사 판독부터 공법 판정·수량·공사비·도면·보고서 초안까지</p>
+
+<nav class="toc" aria-label="목차">
+  <a href="#what">1. 물꼬로 하는 일</a>
+  <a href="#start">2. 5분 만에 시작하기</a>
+  <a href="#io">3. 넣는 자료와 얻는 결과</a>
+  <a href="#form">4. 조서 양식(필수 열)</a>
+  <a href="#tabs">5. 화면 구성</a>
+  <a href="#rule">6. 판정 기준 요약</a>
+  <a href="#limit">7. 지금의 한계와 주의</a>
+  <a href="#road">8. 앞으로의 개발 계획</a>
+  <a href="#faq">9. 자주 묻는 질문</a>
+</nav>
+
+<h2 id="what">1. 물꼬로 하는 일</h2>
+<p>CCTV 정밀조사 조서(관로 제원 + 결함 위치)를 넣으면, 환경부 매뉴얼(2015·2017·2025) 기준으로 관로마다 상태를 평가하고 <b>굴착·비굴착 정비공법</b>을 경제성과 시공성으로 판정합니다. 판정 결과로 <b>수량·개략공사비</b>, <b>설계도서용 엑셀</b>, <b>CAD 도면 주석</b>, <b>설계보고서 초안</b>을 한 번에 만듭니다.</p>
+<div class="flow"><span>조서 읽기</span><b>→</b><span>결함 위치 보정</span><b>→</b><span>근접결함 병합</span><b>→</b><span>공법 판정(VE)</span><b>→</b><span>수량·공사비</span><b>→</b><span>엑셀·도면·보고서</span></div>
+<p>프로그램은 두 가지로 씁니다.</p>
+<ul>
+  <li><span class="tag web">웹</span>이 주소에서 바로 실행됩니다. 설치가 필요 없고, 계산은 모두 <b>내 기기 브라우저 안</b>에서 하므로 올린 파일이 서버로 가지 않습니다. 공개판이라 <b>예시 단가</b>가 들어 있습니다.</li>
+  <li><span class="tag pc">PC</span>파이썬 프로그램으로 실행합니다. 웹 기능 전부에 더해 <b>보고서 PDF 판독</b>, 설계내역서 단가 가져오기, 기존 설계 대조 같은 명령줄 도구를 씁니다.</li>
+</ul>
+
+<h2 id="start">2. 5분 만에 시작하기</h2>
+<ol>
+  <li><a href="./">물꼬</a>를 엽니다. 처음에는 프로그램을 내려받느라 20~60초 걸립니다(두 번째부터 빠름). 발표 전에는 미리 열어 두세요.</li>
+  <li>처음 화면은 <b>샘플 조서(관로 12개)</b>로 계산된 결과입니다. 탭을 눌러 보며 어떤 결과가 나오는지 먼저 봅니다.</li>
+  <li>왼쪽 사이드바의 <b>📄 조서 입력 양식 받기</b>로 빈 양식을 받아 내 조사 자료를 채웁니다(4장 참고).</li>
+  <li>사이드바 <b>조사 데이터</b>에 채운 엑셀을 올리면 바로 다시 계산됩니다.</li>
+  <li>필요하면 <b>조사·평가 매뉴얼</b>, <b>판정기준(VE 파라미터)</b>, <b>관경별 단가</b>를 사업에 맞게 조정합니다.</li>
+  <li><b>⬇️ 출력</b> 탭에서 수량산출서·설계보고서 초안·총괄조서·공사비 내역서·DXF·LSP를 내려받습니다.</li>
+</ol>
+
+<h2 id="io">3. 넣는 자료와 얻는 결과</h2>
+<h3>3.1 웹에서 되는 것</h3>
+<div class="tbl"><table>
+<tr><th>넣는 자료</th><th>구분</th><th>얻는 결과</th></tr>
+<tr><td>정밀조사 조서 엑셀<br>(관로제원 + 결함내역)</td><td><span class="tag must">필수</span></td>
+<td>관로별 상태등급(구조·운영), 결함 위치 보정, 근접결함 병합(부분보수 규격·개소), 정비공법 판정과 <b>선정 사유 문장</b>, 정비 우선순위, 공법별·관경별 연장, 수량·개략공사비, 판정기준 민감도, 검토 경고<br>
+<b>내려받기</b>: 실무 양식 수량산출서(수식 연동), 설계보고서 초안(Word), 실시설계 총괄조서, 공사비 내역서·원가계산서, 결함도면 DXF, AutoCAD 주석 LSP</td></tr>
+<tr><td>SWMM 모델 .inp (+ 결과 .rpt)</td><td><span class="tag opt">선택</span></td><td>관로 통수능 검토(최대유량/만관유량), 통수능 부족 관로의 <b>증경(굴착교체)</b> 판정, 정비 후 모델 반영</td></tr>
+<tr><td>GIS 관로선·맨홀점<br>(GeoJSON 또는 Shapefile zip)</td><td><span class="tag opt">선택</span></td><td>관로에 실제 좌표·선형 결합(좌표계 자동 인식, EPSG:5186 등), 도면의 실좌표 배치, <b>GIS 결과 GeoJSON</b>(관로·결함·맨홀)</td></tr>
+<tr><td>맨홀 결함 조서 엑셀<br>(<b>🕳️ 맨홀</b> 탭)</td><td><span class="tag opt">선택</span></td><td>맨홀 상태등급(2017 표준매뉴얼, 블록 이음부 단위 평균), 보수공법(뚜껑·인버트·내부파손·접합부·주변부·라이닝·재설치 등), 공법별 수량·보수비, 맨홀 보수 조서 엑셀. 수량산출서와 보고서 초안에도 함께 들어갑니다.</td></tr>
+<tr><td>실제 단가(사이드바 단가 편집)</td><td><span class="tag opt">선택</span></td><td>예시 단가 대신 사업 단가로 공사비 계산</td></tr>
+</table></div>
+<h3>3.2 PC에서만 되는 것 (명령줄 도구)</h3>
+<div class="tbl"><table>
+<tr><th>넣는 자료</th><th>명령</th><th>얻는 결과</th></tr>
+<tr><td>CCTV 조사보고서 PDF<br>(조사 소프트웨어 출력)</td><td><code>cctv-pdf</code></td><td>사진 옆 거리 라벨을 판독해 <b>결함 위치가 있는 표준 조서</b>를 만들고, 조사기관 상태등급과 비교</td></tr>
+<tr><td>맨홀 현장조사 보고서 PDF</td><td><code>manhole-pdf</code></td><td>맨홀 제원·결함·조사기관 등급을 읽어 맨홀 조서 생성 → 웹 맨홀 탭에 그대로 올릴 수 있음</td></tr>
+<tr><td>설계 수량산출서(집계형 조서)</td><td><code>convert-count</code></td><td>표준 조서로 변환하고, 기존 설계 판정과 프로그램 판정을 대조해 사무소 관행에 맞는 기준 탐색</td></tr>
+<tr><td>설계내역서 엑셀(STmate 출력)</td><td><code>import-prices</code></td><td>공종 단가·원가계산 요율을 읽어 프로그램 단가표 생성</td></tr>
+<tr><td>정밀조사 집계표</td><td><code>agency-check</code></td><td>조사기관 등급과 프로그램 계산 대조</td></tr>
+</table></div>
+<div class="note">흐름 예: 조사업체 보고서 PDF만 있다면 → PC에서 <code>cctv-pdf</code>로 조서 엑셀을 만들고 → 웹이나 PC 대시보드에 올려 판정·수량·보고서까지 진행합니다.</div>
+
+<h2 id="form">4. 조서 양식(필수 열)</h2>
+<p>사이드바의 <b>📄 조서 입력 양식 받기</b>로 받은 엑셀에 두 시트를 채웁니다. 열 이름은 아래 이름 중 하나면 자동으로 알아봅니다.</p>
+<div class="tbl"><table>
+<tr><th>시트</th><th>필수 열</th><th>있으면 좋은 열</th></tr>
+<tr><td>관로제원</td><td>관번, 관경(mm), 도면연장(m)</td><td>시점·종점맨홀, 관종, 촬영연장(m), 평균심도(m), 포장, 조사방향(순/역방향), 적용매뉴얼(2015/2017/2025), 설계유량, 시·종점 좌표</td></tr>
+<tr><td>결함내역</td><td>관번, 거리(m), 결함코드 또는 결함내용, 등급(대/중/소 또는 구조·운영등급)</td><td>종료거리(m) — 연속 결함일 때</td></tr>
+</table></div>
+<p>맨홀 탭은 별도 양식(맨홀번호, 결함명, 등급, 맨홀깊이, 블록이음부수)을 탭 안의 <b>📄 입력 양식 받기</b>로 받습니다.</p>
+
+<h2 id="tabs">5. 화면 구성</h2>
+<div class="tbl"><table>
+<tr><th>탭</th><th>내용</th></tr>
+<tr><td>📊 총괄</td><td>총 개략공사비, 공법별 관로수·연장·공사비, 공법 구성 차트, 관경별 공법 연장</td></tr>
+<tr><td>📋 관로별 조서</td><td>관로마다 상태점수·불량률·정비공법·공사비·선정사유</td></tr>
+<tr><td>🔎 관로 상세</td><td>관로 하나의 결함 위치 도식, 병합 구간, 판정 근거</td></tr>
+<tr><td>🧩 병합내역</td><td>근접결함 병합 전후 비교(개소·공사비 절감)</td></tr>
+<tr><td>📐 수량·공사비</td><td>공종·항목·규격별 수량과 금액</td></tr>
+<tr><td>📈 민감도</td><td>병합 이격거리·불량률·손익분기 기준을 바꿨을 때 공법과 공사비 변화</td></tr>
+<tr><td>⚠️ 경고</td><td>연장오차, 미등록 결함코드, 관번 불일치 등 검토가 필요한 항목</td></tr>
+<tr><td>⬇️ 출력</td><td>수량산출서·설계보고서 초안·총괄조서·공사비 내역서·GIS·DXF·LSP 내려받기</td></tr>
+<tr><td>🕳️ 맨홀</td><td>맨홀 상태등급·보수공법·수량·보수비, 맨홀 보수 단가 편집</td></tr>
+</table></div>
+
+<h2 id="rule">6. 판정 기준 요약</h2>
+<ol>
+  <li><b>위치 보정</b>: 결함 거리 × (도면연장 ÷ 촬영연장). 역방향 촬영은 시점 기준으로 환산합니다.</li>
+  <li><b>상태평가</b>: 2017·2025는 관 1본 최대 결함점수로 본 등급(70점↑ 5, 40↑ 4, 20↑ 3, 10↑ 2)을 매기고 평균을 구간 상태점수로 씁니다. 2015는 1m 구간 합산점수의 최대·평균값을 씁니다.</li>
+  <li><b>근접결함 병합</b>: 이격 1.2m 이내 결함은 한 구간으로 묶고 양측 0.3m 여유를 더해 1.0~3.0m 표준규격으로 계상합니다.</li>
+  <li><b>부분보수 vs 전체보수</b>: 불량률이 기준(기본 25%) 이상이거나, 부분보수비가 전체보수비의 손익분기(기본 75%) 이상이면 비굴착 전체보수.</li>
+  <li><b>굴착 판정</b>: 비굴착이 불가능한 결함(파손·변형 대 등)은 부분굴착, 개소·연장이 많거나 통수능이 부족하면 굴착교체(증경).</li>
+  <li><b>운영결함</b>은 준설·세정으로 해소하고, 결함이 없거나 경미하면 개량제외.</li>
+</ol>
+<p>모든 기준값은 사이드바에서 바꿀 수 있고, 바꾸면 즉시 다시 계산됩니다.</p>
+
+<h2 id="limit">7. 지금의 한계와 주의</h2>
+<ul>
+  <li><b>단가</b>: 웹 공개판은 예시 단가입니다. 공사비는 사업 단가로 바꾼 뒤 사용하세요.</li>
+  <li><b>보고서 PDF 판독</b>은 PC에서만 됩니다. 조사업체마다 양식이 달라, 새 양식은 판독 규칙 보완이 필요할 수 있습니다.</li>
+  <li><b>2025 매뉴얼</b>은 점수표·규칙은 반영했으나 실제 사업 성과와의 대조 검증은 아직입니다(2015·2017은 실제 사업 자료로 검증).</li>
+  <li><b>맨홀</b>은 2017 표준매뉴얼 점수표만 있습니다. 결함의 깊이 위치를 읽지 못해 구조 등급이 조사기관보다 0.5등급 높게 나올 수 있습니다.</li>
+  <li><b>설계보고서 초안</b>은 판정 결과를 문장·표로 옮긴 것입니다. 사업 배경, 현장 여건, 민원·교통 대책은 설계자가 보완합니다.</li>
+  <li>결과는 설계 검토를 돕는 자료이며, 최종 판단과 책임은 설계자에게 있습니다.</li>
+</ul>
+
+<h2 id="road">8. 앞으로의 개발 계획</h2>
+<div class="tbl"><table>
+<tr><th>상태</th><th>항목</th><th>내용</th></tr>
+<tr><td class="done">완료</td><td>관로 판정·수량·공사비</td><td>3개 매뉴얼 상태평가, 근접결함 병합, 굴착/비굴착 VE 판정, 원가계산서</td></tr>
+<tr><td class="done">완료</td><td>도면·GIS·SWMM 연동</td><td>DXF·LSP 주석, GIS 좌표 결합·GeoJSON, SWMM 통수능 검토</td></tr>
+<tr><td class="done">완료</td><td>보고서 PDF 판독(PC)</td><td>CCTV 보고서 결함 위치 판독, 맨홀 보고서 조서화와 조사기관 등급 재현</td></tr>
+<tr><td class="done">완료</td><td>맨홀 정비</td><td>맨홀 상태등급·보수공법·수량·보수비(실제 설계 공종 기준)</td></tr>
+<tr><td class="done">완료</td><td>설계도서 출력</td><td>실무 양식 수량산출서, 설계보고서 초안(Word)</td></tr>
+<tr><td class="doing">진행 중</td><td>새 양식 보고서 판독</td><td>다른 조사업체 양식(바닥글 없는 양식, 분할 거리 라벨) 대응과 대량 PDF 처리 속도 개선</td></tr>
+<tr><td class="plan">예정</td><td>비굴착 공법 세분화</td><td>반전·형성·제관 등 공법별 적용 조건과 단가 비교</td></tr>
+<tr><td class="plan">예정</td><td>사업비·연차별 투자계획</td><td>정비 우선순위에 따른 연도별 사업량·사업비 배분</td></tr>
+<tr><td class="plan">예정</td><td>2025 매뉴얼·맨홀 기준 확대</td><td>2025 실제 사업 자료 검증, 맨홀 2015·2025 점수표</td></tr>
+<tr><td class="plan">검토</td><td>웹에서 보고서 PDF 판독</td><td>PC 전용 기능을 브라우저에서도 쓰도록 이전</td></tr>
+</table></div>
+
+<h2 id="faq">9. 자주 묻는 질문</h2>
+<h3>'불러오는 중'에서 멈춰요</h3>
+<p>1분 정도 기다린 뒤 새로고침하세요. 실행 파일은 모두 이 주소에서 받으므로 외부 CDN이 막힌 회사망에서도 열립니다. github.io 자체가 막힌 망이라면 PC 버전을 씁니다.</p>
+<h3>올린 조서가 외부로 나가나요?</h3>
+<p>아니요. 서버가 없고, 계산은 모두 접속한 기기의 브라우저 안에서 이루어집니다.</p>
+<h3>결함이 판정에서 빠졌어요</h3>
+<p>⚠️ 경고 탭의 '미등록 결함코드'를 확인하세요. 조서의 적용매뉴얼과 결함코드가 서로 맞아야 합니다.</p>
+<h3>공법이 우리 사무소 관행과 달라요</h3>
+<p>사이드바 판정기준(병합 이격, 불량률, 손익분기 등)을 조정하고 📈 민감도 탭에서 변화를 확인하세요. PC의 <code>convert-count --calibrate</code>로 기존 설계에 맞는 기준을 찾을 수 있습니다.</p>
+
+<footer>물꼬 · 물마루 플랫폼 · 이 안내는 공개판 기준입니다. <a href="./">물꼬 열기</a> · <a href="https://wonjejj-glitch.github.io/mulmaru/">물마루 포털</a></footer>
+</main>
+</body>
+</html>
