@@ -129,10 +129,13 @@ class GlyphOCR:
         gs = _glyphs(mask)
         if len(gs) != len(text):
             return False
+        conflicts = sum(self.table.get(g, ch) != ch for g, ch in zip(gs, text))
+        if conflicts:
+            # An interrupted survey's end marker may show travelled distance, not total length.
+            # Never train the remaining unknown glyphs from such a contradicted label.
+            self.conflicts += conflicts
+            return False
         for g, ch in zip(gs, text):
-            if self.table.get(g, ch) != ch:
-                self.conflicts += 1
-                continue
             self.table[g] = ch
         for m, c in zip(_glyph_masks(mask), text):
             near, d = self._nearest(m)
@@ -284,9 +287,15 @@ def parse_page(doc, page) -> PageData | None:
                 m = _mask(page.get_pixmap(clip=fitz.Rect(x0,y0,comp["bbox"][2],y1), dpi=300))
         if not m.any():
             continue
-        paired = any(abs(w["bbox"][1]-y0) < 4 for w in wide)
-        labels.append((y0, packed(m), paired))
+        labels.append((y0, packed(m), False))
     labels.sort(key=lambda z:z[0])
+    # A nearby photo distance may overlap a manhole marker. Pair only the closest label.
+    for w in wide:
+        if labels:
+            k = min(range(len(labels)), key=lambda j: abs(labels[j][0]-w["bbox"][1]))
+            if abs(labels[k][0]-w["bbox"][1]) < 4:
+                y,m,_ = labels[k]
+                labels[k] = (y,m,True)
     start = labels[0][1] if labels and labels[0][2] and labels[0][0] < 310 else None
     end = labels[-1][1] if labels and labels[-1][2] and (len(labels)>1 or labels[-1][0]>=310) else None
     mid = [(y,m) for y,m,paired in labels if not paired]
@@ -306,6 +315,7 @@ class PipeReport:
     pages: int = 0
     defect_pages: list[int] = field(default_factory=list)
     page_numbers: list[int] = field(default_factory=list)
+    defect_labels: list[str] = field(default_factory=list)
 
 
 def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | None = None,
@@ -322,7 +332,7 @@ def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | 
     path = Path(path)
     doc = fitz.open(str(path))
     n = len(doc) if max_pages is None else min(max_pages, len(doc))
-    cache_key = (4, str(path.resolve()), path.stat().st_size, path.stat().st_mtime_ns, n)
+    cache_key = (5, str(path.resolve()), path.stat().st_size, path.stat().st_mtime_ns, n)
     cache = open(cache_path, "a+b") if cache_path else tempfile.TemporaryFile()
     cache.seek(0)
     try:
@@ -360,18 +370,33 @@ def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | 
         if pd_.end_label is not None and "length" in pd_.header:
             ocr.learn(_mask(pd_.end_label), f"{pd_.header['length']:.2f}m")
     reports: dict[str, PipeReport] = {}
+    fingerprints, serials = {}, {}
     stats = {"pages": 0, "total_pages":n, "labels": 0, "unread": 0, "mismatch_pages": 0}
     for pd_ in pages():
         stats["pages"] += 1
-        rep = reports.setdefault(pd_.pipe_id, PipeReport(pd_.pipe_id, Path(str(path)).name))
+        fp = (pd_.pipe_id,) + tuple(pd_.header.get(k) for k in
+             ("length","run","material","diameter","struct_avg","oper_avg"))
+        if fp not in fingerprints:
+            serials[pd_.pipe_id] = serials.get(pd_.pipe_id,0) + 1
+            num = serials[pd_.pipe_id]
+            pid = pd_.pipe_id if num == 1 else f"{pd_.pipe_id}#{num}"
+            fingerprints[fp] = pid
+            reports[pid] = PipeReport(pid, Path(str(path)).name)
+            reports[pid].header["original_pipe_id"] = pd_.pipe_id
+            if num > 1:
+                reports[pid].warnings.append("동일 맨홀쌍의 제원·등급이 다른 기록을 별도 관로로 분리")
+        rep = reports[fingerprints[fp]]
         rep.pages += 1
         rep.page_numbers.append(pd_.page_no)
         rep.header.update({k: v for k, v in pd_.header.items() if k not in rep.header})
-        values = []
+        values, label_texts = [], []
         for _y, pix in pd_.labels:
             txt = ocr.read(_mask(pix))
             stats["labels"] += 1
+            label_texts.append(txt)
             try:
+                if not METERS.fullmatch(txt):
+                    raise ValueError("incomplete distance label")
                 values.append(float(txt.rstrip("m")))
             except ValueError:
                 values.append(None)
@@ -381,10 +406,20 @@ def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | 
         # 조사중단 등으로 끝맨홀 표시가 빠지면 총연장 라벨이 남는다 → 제거
         if len(values) == len(caps) + 1 and L and values[-1] is not None and abs(values[-1] - L) < 0.011:
             values = values[:-1]
+            label_texts = label_texts[:-1]
         elif len(values) == len(caps) + 1 and values[0] == 0.0:
             values = values[1:]
+            label_texts = label_texts[1:]
         # 음수 거리 = 역방향 촬영 구간(끝맨홀 기준) → 시점 기준 거리로 환산
-        values = [(round(L + v, 2) if (v is not None and v < 0 and L) else v) for v in values]
+        reverse_zero = any("조사시작(역주행)" in c[2] for c in caps) and not any("(순주행)" in c[2] for c in caps)
+        values = [(round(L + v, 2) if (v is not None and L and
+                  (txt.startswith("-") or (v == 0 and reverse_zero))) else v)
+                  for v,txt in zip(values,label_texts)]
+        # Keep out-of-range OCR results out of positional grading; retain their raw labels for review.
+        for vi,v in enumerate(values):
+            if v is not None and L and not -0.01 <= v <= L+0.01:
+                rep.warnings.append(f"p{pd_.page_no}: 원문거리 {label_texts[vi]}가 관로연장 {L}m 범위 밖 - 위치 미확정")
+                values[vi] = None
         if len(values) != len(caps):
             stats["mismatch_pages"] += 1
             rep.warnings.append(f"p{pd_.page_no}: 위치라벨 {len(values)}개 ≠ 사진캡션 {len(caps)}개 - 해당 페이지 결함 위치 미확정")
@@ -392,12 +427,14 @@ def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | 
                 if grade and is_defect(name):
                     rep.defects.append((float("nan"), name, GRADE5[grade]))
                     rep.defect_pages.append(pd_.page_no)
+                    rep.defect_labels.append("")
             continue
-        for v, (_y, _x, name, grade) in zip(values, caps):
+        for v, txt, (_y, _x, name, grade) in zip(values, label_texts, caps):
             pos = float("nan") if v is None else v
             if grade and is_defect(name):
                 rep.defects.append((pos, name, GRADE5[grade]))
                 rep.defect_pages.append(pd_.page_no)
+                rep.defect_labels.append(txt)
             else:
                 rep.events.append((pos, name))
     cache.close()
@@ -419,13 +456,13 @@ def write_survey(reports: list[PipeReport], path: str | Path, manual: str = "201
                "조사기관 구조상태(최대)", "조사기관 구조상태(평균)", "조사기관 운영상태(최대)", "조사기관 운영상태(평균)",
                "출처", "추출경고", "관 본 경계(m)", "PDF 페이지"])
     ws2 = wb.create_sheet("결함내역")
-    ws2.append(["관번", "거리(m)", "결함코드", "결함내용", "구조등급", "운영등급", "비고", "PDF 페이지"])
+    ws2.append(["관번", "거리(m)", "결함코드", "결함내용", "구조등급", "운영등급", "비고", "PDF 페이지", "원문거리"])
     for r in reports:
         h = r.header
         L = h.get("length")
         if not L:
             continue
-        run = h.get("run") or L
+        run = h.get("run") if h.get("run") is not None else L
         dia = re.sub(r"[^0-9]", "", str(h.get("diameter", ""))) or None
         ws.append([r.pipe_id, MATERIAL_MAP.get(str(h.get("material", "")).replace("(HP)", ""), h.get("material")),
                    int(dia) if dia else None, L, L, run, h.get("kind"), manual,
@@ -436,14 +473,15 @@ def write_survey(reports: list[PipeReport], path: str | Path, manual: str = "201
                       {pos for pos,name in r.events if pos == pos and 0 < pos < L and "이음부" in name and "존재" in name})),
                    ",".join(map(str,r.page_numbers))])
         for di, (pos, name, g) in enumerate(r.defects):
-            code = map_label(name)
+            code = map_label(name.replace("균열원주", "균열(원주)").replace("균열복합", "균열(복합)"))
             if code is None:
                 continue
             struct = code not in OPERATIONAL_STATE
             note = "CCTV 보고서 위치" if pos == pos else "위치 미확정"
             ws2.append([r.pipe_id, pos if pos == pos else None, trans.get(code, code), name,
                         g if struct else None, None if struct else g, note,
-                        r.defect_pages[di] if di < len(r.defect_pages) else None])
+                        r.defect_pages[di] if di < len(r.defect_pages) else None,
+                        r.defect_labels[di] if di < len(getattr(r,"defect_labels",[])) else None])
     for w in (ws, ws2):
         for c in w[1]:
             c.font = Font(bold=True)

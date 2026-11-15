@@ -306,6 +306,12 @@ with tabs[6]:
         st.success("검토 경고 없음")
 
 with tabs[7]:
+    from report_ui.quantity_book import build_quantity_book
+    st.download_button("📒 실무 양식 수량산출서 (Excel, 수식 연동)",
+                       build_quantity_book(res, project, st.session_state.get("mh_works")),
+                       file_name=f"{project}_수량산출서.xlsx",
+                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                       help="수량총괄표·비굴착/굴착 집계표·단면 산출근거·관로별 산출서(+맨홀 탭 결과가 있으면 맨홀보수 집계표)")
     st.download_button("📗 실시설계 총괄조서 (Excel)", build_workbook(res, project),
                        file_name=f"{project}_정비총괄조서.xlsx",
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

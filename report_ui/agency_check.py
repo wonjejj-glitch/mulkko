@@ -111,6 +111,11 @@ def check_survey_grades(survey_path: str | Path, cfg: dict) -> tuple[pd.DataFram
                         "운영 일치":abs(oper-ag_o)<=0.050000001 if ag_o is not None and valid else None,
                         "본수":n_units,"본 경계 기준":basis,
                         "기본간격 구조평균":ev["condition_score"],"기본간격 운영평균":ev["oper_score"]})
+        if not valid:
+            for col in ("도구 최대값(점)","도구 최대등급","도구 평균값","도구 평균등급","도구 운영평균",
+                        "기본간격 구조평균","기본간격 운영평균"):
+                if col in row:
+                    row[col] = None
         rows.append(row)
     df = pd.DataFrame(rows)
     def result(column):
