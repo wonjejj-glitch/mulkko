@@ -100,7 +100,7 @@ def _won(x: float) -> str:
 
 # ------------------------------------------------------------------ 사이드바
 base_cfg = load_config()
-st.sidebar.markdown("📖 [물꼬 사용 안내](./guide.html) — 넣는 자료·결과·판정 기준·개발 계획")
+st.sidebar.markdown("📖 [물꼬 사용 안내](./guide.html) · 📘 [가이드북 PDF](./mulkko_guidebook.pdf)")
 
 
 @st.cache_data
@@ -291,6 +291,36 @@ with tabs[4]:
     with st.expander("관로별 수량 상세"):
         st.dataframe(q_detail, hide_index=True, width="stretch")
 
+    st.subheader("총사업비 (재정계획 소요사업비)")
+    st.caption("총사업비 = 총공사비(도급공사비 + 폐기물처리 + CCTV조사·수밀시험 + GIS DB 구축) + 시설부대경비(설계비 + 감리비 + 시설부대비). "
+               "금액 칸이 0이면 도급공사비 대비 사례 비율로 추정합니다. 실제 금액·요율을 넣으면 그 값으로 계산합니다.")
+    from report_ui.cost_statement import total_cost as _tc
+    from report_ui.project_cost import DEFAULTS as _PD
+    from report_ui.project_cost import project_cost_table
+    _c = st.columns(4)
+    _gw = _c[0].number_input("관급자재대(원)", min_value=0, value=0, step=1_000_000, help="도급과 별도로 계상하는 관급자재가 있으면 입력")
+    _wa = _c[1].number_input("폐기물처리(원)", min_value=0, value=0, step=1_000_000, help="0이면 도급 대비 %.2f%% 추정" % (_PD["waste_ratio"] * 100))
+    _cc = _c[2].number_input("CCTV조사·수밀시험(원)", min_value=0, value=0, step=1_000_000, help="0이면 도급 대비 %.2f%% 추정" % (_PD["cctv_ratio"] * 100))
+    _gi = _c[3].number_input("GIS DB 구축(원)", min_value=0, value=0, step=1_000_000, help="0이면 도급 대비 %.2f%% 추정" % (_PD["gis_ratio"] * 100))
+    _c = st.columns(3)
+    _de = _c[0].number_input("설계비 — 실제 계약금액(원)", min_value=0, value=0, step=1_000_000,
+                             help="0이면 총공사비 대비 %.2f%% 추정" % (_PD["design_ratio"] * 100))
+    _sv = _c[1].number_input("감리비 요율(%)", min_value=0.0, max_value=30.0, value=_PD["supervision_rate"] * 100, step=0.01,
+                             help="하수도분야 보조금 편성 및 집행관리 실무요령(환경부) 요율. 관급자재 제외 도급공사비 기준")
+    _fa = _c[2].number_input("시설부대비 요율(%)", min_value=0.0, max_value=10.0, value=_PD["facility_rate"] * 100, step=0.01)
+    _mw = st.session_state.get("mh_works")
+    _mh = float(_mw["금액"].sum()) if _mw is not None and len(_mw) else 0.0
+    pc_table = project_cost_table(res, _tc(res), manhole_direct=_mh, gwangeup=_gw, waste=_wa or None, cctv=_cc or None,
+                                  gis=_gi or None, design_fee=_de or None,
+                                  opts={"supervision_rate": _sv / 100, "facility_rate": _fa / 100})
+    st.session_state["pc_table"] = pc_table
+    st.metric("총사업비", _won(float(pc_table.iloc[0]["금액(원)"])))
+    st.dataframe(pc_table, hide_index=True, width="stretch",
+                 column_config={"금액(원)": st.column_config.NumberColumn(format="%,d"),
+                                "금액(백만원)": st.column_config.NumberColumn(format="%,d")})
+    if _mh:
+        st.caption("맨홀 탭의 맨홀 보수비가 도급공사비에 포함되었습니다.")
+
 with tabs[5]:
     st.caption("현재 사이드바 기준을 바탕으로 한 가지 파라미터만 변화시켰을 때의 결과")
     param = st.selectbox("분석 파라미터", ["breakeven_ratio", "defect_rate_threshold_pct", "merge_gap_m"],
@@ -330,7 +360,7 @@ with tabs[7]:
     from report_ui.design_report import build_design_report
     st.download_button("📝 설계보고서 초안 (Word)",
                        build_design_report(res, project, st.session_state.get("mh_result"), st.session_state.get("mh_works"),
-                                           _total_cost(res)),
+                                           _total_cost(res), st.session_state.get("pc_table")),
                        file_name=f"{project}_설계보고서초안.docx",
                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                        help="과업 개요·조사 결과·판정 기준·공법 선정 결과·관로별 선정 사유·수량/공사비·(맨홀)·검토 의견")

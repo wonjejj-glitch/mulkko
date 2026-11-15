@@ -16,6 +16,7 @@
 "report_ui/docx_mini.py",
 "report_ui/excel_report.py",
 "report_ui/manhole_tab.py",
+"report_ui/project_cost.py",
 "report_ui/quantity_book.py",
 "report_ui/sensitivity.py",
 "report_ui/tables.py",

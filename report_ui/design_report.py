@@ -32,7 +32,8 @@ def _rows(df: pd.DataFrame) -> list[list]:
 
 
 def build_design_report(res: ProjectResult, project: str = "노후하수관로 정비사업", manhole_result: pd.DataFrame | None = None,
-                        manhole_works: pd.DataFrame | None = None, total_cost: float | None = None) -> bytes:
+                        manhole_works: pd.DataFrame | None = None, total_cost: float | None = None,
+                        project_cost: pd.DataFrame | None = None) -> bytes:
     d = Doc()
     pipes = res.pipes
     decs = res.decisions
@@ -136,6 +137,13 @@ def build_design_report(res: ProjectResult, project: str = "노후하수관로 �
     d.p(f"직접공사비 합계 {_won(float(tot['공사비(원)']))}"
         + (f", 원가계산(간접노무비·경비·일반관리비·이윤 등 포함) 총공사비 {_won(total_cost)}" if total_cost is not None else "")
         + f"이다. 단가·요율은 {src + ' 설계내역서' if src else '프로그램 예시 단가'}를 적용하였다.")
+
+    if project_cost is not None and len(project_cost):
+        d.h2("6.1 총사업비(소요사업비)")
+        d.p(f"총사업비는 {_won(float(project_cost.iloc[0]['금액(원)']))}이며, 총공사비와 시설부대경비로 구성된다. "
+            "감리비·시설부대비는 「하수도분야 보조금 편성 및 집행관리 실무요령(환경부)」의 요율을 적용하였다.")
+        d.table(["구분", "금액(백만원)", "비고"], [[r["구분"], int(r["금액(백만원)"]), r["비고"]] for _, r in project_cost.iterrows()],
+                [2.4, 1, 2.6])
 
     # ------------------------------------------------------------- 7. 맨홀
     if manhole_result is not None and len(manhole_result):
