@@ -24,7 +24,9 @@ def load_config(path: str | Path | None = None, manual: str | None = None) -> di
     if path and Path(path).resolve() != DEFAULT_CONFIG_PATH:
         # 사용자 설정은 기본값 위에 덮어쓴다(누락 키는 기본값 유지)
         with open(path, encoding="utf-8") as f:
-            cfg = deep_merge(cfg, json.load(f))
+            user = json.load(f)
+        cfg = deep_merge(cfg, user)
+        cfg["criteria_override"] = {**cfg.get("criteria_override", {}), **user.get("criteria", {})}
     return apply_manual(cfg, manual)
 
 
@@ -41,9 +43,11 @@ def deep_merge(base: dict, override: dict) -> dict:
 def with_criteria(cfg: dict, **overrides: Any) -> dict:
     """criteria 항목만 바꾼 설정 사본을 반환(민감도 분석용)."""
     new = copy.deepcopy(cfg)
+    new["criteria_override"] = dict(new.get("criteria_override", {}))
     for k, v in overrides.items():
         if v is not None:
             new["criteria"][k] = v
+            new["criteria_override"][k] = v      # 관로별 매뉴얼 적용 시에도 유지
     return new
 
 

@@ -46,7 +46,8 @@ def apply_manual(cfg: dict, manual_id: str | None = None) -> dict:
     out = copy.copy(cfg)          # 얕은 복사: 큰 단가표 등은 공유
     for k in REPLACED:
         out[k] = man.get(k)
-    out["criteria"] = {**cfg["criteria"], **man.get("criteria", {})}
+    # 사용자가 설정 파일(프리셋)·대시보드에서 직접 정한 기준(criteria_override)은 매뉴얼 기본값보다 우선
+    out["criteria"] = {**cfg["criteria"], **man.get("criteria", {}), **cfg.get("criteria_override", {})}
     out["manual"] = mid
     out["manual_title"] = man["title"]
     return out
