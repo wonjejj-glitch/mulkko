@@ -239,7 +239,8 @@ def parse_page(doc, page) -> PageData | None:
         m = ANY_CAPTION.match(t)
         if m and y > 200:
             c = CAPTION.match(t)
-            nm = re.sub(r"^\(?(?:관로|상태|맨홀)\)", "", (c.group("name") if c else m.group("name")).strip())
+            nm = re.sub(r"^\(?(?:관로|상태)\)", "", (c.group("name") if c else m.group("name")).strip())
+            nm = re.sub(r"^\(?맨홀\)", "(맨홀)", nm)
             caps.append((y, x, nm, c.group("grade") if c else None))
     caps.sort(key=lambda c: (round(c[0] / 20), c[1]))       # 행(같은 높이) → 열 순서
     # Embedded image blocks retain native mask pixels; honor mirrored image transforms.
@@ -299,6 +300,16 @@ def parse_page(doc, page) -> PageData | None:
     start = labels[0][1] if labels and labels[0][2] and labels[0][0] < 310 else None
     end = labels[-1][1] if labels and labels[-1][2] and (len(labels)>1 or labels[-1][0]>=310) else None
     mid = [(y,m) for y,m,paired in labels if not paired]
+    # Manhole photos can add a separate depth annotation just below the actual distance.
+    # Only remove this layout-specific extra when a manhole caption is present and counts exceed photos.
+    if len(mid)>len(caps) and any(c[2].startswith("(맨홀)") for c in caps):
+        depth_y = {b["bbox"][1] for b in nearby if b["bbox"][2]-b["bbox"][0]>35
+                   and 115 <= b["bbox"][0] <= 130 and b["bbox"][2]>160
+                   and any(14 <= b["bbox"][1]-y <= 19 for y,_m in mid)}
+        selected = [(y,m) for y,m in mid if y not in depth_y]
+        if len(selected)==len(caps):
+            mid=selected
+            header["excluded_depth_labels"] = len(depth_y)
     header["pdf_page"] = page.number + 1
     return PageData(pid_override or foot.group("pid"), page.number + 1, header, caps, mid, start, end)
 
@@ -325,7 +336,7 @@ def extract_pdf(path: str | Path, ocr: GlyphOCR | None = None, max_pages: int | 
 
     from defect_processor.count_converter import map_label
 
-    is_defect = is_defect or (lambda n: map_label(n) is not None)
+    is_defect = is_defect or (lambda n: not n.startswith("(맨홀)") and map_label(n) is not None)
     ocr = ocr or GlyphOCR()
     import pickle
     import tempfile

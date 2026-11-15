@@ -7,13 +7,46 @@
 <link rel="stylesheet" href="./vendor/stlite/stlite.css" />
 <style>
   :root { color-scheme: light; }
-  body { margin: 0; background: #fff; font-family: system-ui, "Malgun Gothic", sans-serif; }
-  #boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body { background: #fff; font-family: system-ui, "Malgun Gothic", sans-serif; }
+  /* 물마루 플랫폼 공통 상단바 */
+  .mm-bar { position: fixed; top: 0; left: 0; right: 0; height: 40px; box-sizing: border-box; z-index: 1000;
+            display: flex; align-items: center; gap: 14px; padding: 0 16px; overflow: hidden;
+            background: #0f3d2c; border-bottom: 1px solid #082a1e; color: #ecf6f0;
+            font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
+  .mm-bar a { color: inherit; text-decoration: none; outline-offset: 2px; }
+  .mm-bar a:focus-visible { outline: 2px solid #5cc98d; border-radius: 3px; }
+  .mm-logo { display: flex; align-items: center; gap: 7px; flex: none; font-size: 15px; font-weight: 800; color: #ecf6f0; }
+  .mm-logo svg { display: block; flex: none; }
+  .mm-sep { width: 1px; height: 18px; flex: none; background: rgba(156, 196, 173, .35); }
+  .mm-nav { display: flex; align-items: stretch; gap: 16px; height: 100%; min-width: 0; }
+  .mm-nav a { display: flex; align-items: center; gap: 5px; height: 100%; box-sizing: border-box; white-space: nowrap;
+              font-size: 13px; color: #9cc4ad; border-bottom: 2px solid transparent; border-top: 2px solid transparent; }
+  .mm-nav a:hover { color: #ecf6f0; }
+  .mm-nav a[aria-current="page"] { color: #ecf6f0; font-weight: 700; border-bottom-color: #5cc98d; }
+  .mm-nav small { font-size: 12px; font-weight: 400; color: #9cc4ad; }
+  .mm-portal { margin-left: auto; flex: none; font-size: 12px; color: #9cc4ad !important; }
+  .mm-portal:hover { color: #ecf6f0 !important; }
+  @media (max-width: 720px) { .mm-nav small, .mm-portal { display: none; } .mm-bar { gap: 10px; padding: 0 10px; } .mm-nav { gap: 12px; } }
+  @media print { .mm-bar { display: none; } #root { top: 0 !important; height: auto !important; } }
+  /* Streamlit 화면: 상단바 아래 영역에 가둠(transform 으로 내부 고정 요소의 기준을 #root 로) */
+  #root { position: fixed; top: 40px; left: 0; right: 0; height: calc(100dvh - 40px); overflow: hidden; transform: translateZ(0); }
+  #boot { position: fixed; top: 40px; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
           gap: 12px; color: #334; text-align: center; padding: 16px; }
   #boot b { font-size: 18px; } #boot small { color: #667; }
 </style>
 </head>
 <body>
+<header class="mm-bar" role="navigation" aria-label="물마루 플랫폼">
+  <a class="mm-logo" href="https://wonjejj-glitch.github.io/mulmaru/" title="물마루 포털"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 15.5c2.6 0 3.9-1.7 5.3-4.5C8.8 8 10.2 4.8 12 4.8s3.2 3.2 4.7 6.2c1.4 2.8 2.7 4.5 5.3 4.5" fill="none" stroke="#5cc98d" stroke-width="2.3" stroke-linecap="round"/><path d="M2 19.5c2 0 3-1 5-1s3 1 5 1 3-1 5-1 3 1 5 1" fill="none" stroke="#ecf6f0" stroke-width="1.6" stroke-linecap="round" opacity=".7"/></svg>물마루</a>
+  <span class="mm-sep" aria-hidden="true"></span>
+  <nav class="mm-nav">
+    <a href="https://wonjejj-glitch.github.io/mulgil/">물길<small>관망해석</small></a>
+    <a href="https://wonjejj-glitch.github.io/garam/">가람<small>댐 용수공급</small></a>
+    <a href="https://wonjejj-glitch.github.io/mulkko/" aria-current="page">물꼬<small>하수관로 정비</small></a>
+  </nav>
+  <a class="mm-portal" href="https://wonjejj-glitch.github.io/mulmaru/">포털</a>
+</header>
 <div id="boot"><b>물꼬</b><span>노후하수관로 정비 통합 설계 플랫폼</span><span id="msg">프로그램을 불러오는 중입니다…</span>
 <small>처음 접속 시 브라우저에 파이썬(약 70MB)을 내려받아 20~60초 걸립니다. 외부 서버 없이 이 주소에서만 받습니다. 계산은 모두 이 기기 안에서 이루어지며 올린 파일은 서버로 전송되지 않습니다.</small></div>
 <div id="root"></div>
@@ -29,7 +62,7 @@ try {
     entrypoint: "report_ui/app.py",
     pyodideUrl: new URL("./vendor/pyodide/pyodide.mjs", location.href).href,
     files,
-    streamlitConfig: { "client.toolbarMode": "viewer", "theme.base": "light", "server.maxUploadSize": 200 },
+    streamlitConfig: { "client.toolbarMode": "viewer", "theme.base": "light", "theme.primaryColor": "#2e8b57", "server.maxUploadSize": 200 },
   }, document.getElementById("root"));
   const obs = new MutationObserver(() => {
     if (document.querySelector("#root [data-testid]")) { document.getElementById("boot").remove(); obs.disconnect(); }

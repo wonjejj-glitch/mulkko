@@ -196,8 +196,9 @@ def _len(r, ms):
 
 
 k = st.columns(5)
-k[0].metric("총 개략공사비", _won(res.total_cost), _won(res.total_cost - base_res.total_cost) + " (기본기준 대비)",
-            delta_color="inverse")
+_dcost = res.total_cost - base_res.total_cost
+k[0].metric("총 개략공사비", _won(res.total_cost),
+            (_won(_dcost) + " (기본기준 대비)") if abs(_dcost) >= 1 else None, delta_color="inverse")
 k[1].metric("비굴착 전체보수", f"{_len(res, ['비굴착 전체보수']):,.1f} m",
             f"{_len(res, ['비굴착 전체보수']) - _len(base_res, ['비굴착 전체보수']):+,.1f} m")
 n_patch = sum(d.n_patch_sites for d in res.decisions.values())
