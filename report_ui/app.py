@@ -100,7 +100,7 @@ def _won(x: float) -> str:
 
 # ------------------------------------------------------------------ 사이드바
 base_cfg = load_config()
-st.sidebar.markdown("📖 [물꼬 사용 안내](./guide.html) · 📘 [가이드북 PDF](./mulkko_guidebook.pdf)")
+st.sidebar.markdown("📗 [쉬운 사용설명서(10쪽)](./mulkko_easy_guide.pdf) · 📖 [사용 안내](./guide.html) · 📘 [가이드북](./mulkko_guidebook.pdf)")
 
 
 @st.cache_data
