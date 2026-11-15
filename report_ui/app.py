@@ -312,6 +312,15 @@ with tabs[7]:
                        file_name=f"{project}_수량산출서.xlsx",
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                        help="수량총괄표·비굴착/굴착 집계표·단면 산출근거·관로별 산출서(+맨홀 탭 결과가 있으면 맨홀보수 집계표)")
+    from report_ui.cost_statement import total_cost as _total_cost
+    from report_ui.design_report import build_design_report
+    st.download_button("📝 설계보고서 초안 (Word)",
+                       build_design_report(res, project, st.session_state.get("mh_result"), st.session_state.get("mh_works"),
+                                           _total_cost(res)),
+                       file_name=f"{project}_설계보고서초안.docx",
+                       mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                       help="과업 개요·조사 결과·판정 기준·공법 선정 결과·관로별 선정 사유·수량/공사비·(맨홀)·검토 의견")
+    st.caption("맨홀 탭에서 맨홀 자료를 불러오면 수량산출서와 보고서 초안에 맨홀 정비계획이 함께 들어갑니다.")
     st.download_button("📗 실시설계 총괄조서 (Excel)", build_workbook(res, project),
                        file_name=f"{project}_정비총괄조서.xlsx",
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

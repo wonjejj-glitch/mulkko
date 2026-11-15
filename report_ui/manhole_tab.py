@@ -115,7 +115,8 @@ def render(project: str) -> None:
         st.caption("맨홀재설치는 깊이 구간별 단가(" + ", ".join(f"H≤{h}m {p:,.0f}원" for h, p in rules["맨홀재설치"]["price_by_depth"]) + ")")
     prices = dict(zip(pdf["공법"], pdf["단가(원)"].astype(float)))
     res, works = evaluate(mhs, prices)
-    st.session_state["mh_works"] = works          # 출력 탭의 수량산출서에 맨홀보수 집계표로 포함
+    st.session_state["mh_works"] = works          # 출력 탭의 수량산출서·보고서 초안에 맨홀 결과 포함
+    st.session_state["mh_result"] = res
     k = st.columns(4)
     k[0].metric("맨홀 수", f"{len(res):,}")
     k[1].metric("보수대상(구조 4↑·운영 5)", f"{(res['보수대상'] == 'Y').sum():,}")
