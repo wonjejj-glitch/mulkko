@@ -20,6 +20,7 @@
 "report_ui/quantity_book.py",
 "report_ui/sensitivity.py",
 "report_ui/tables.py",
+"report_ui/version.py",
 "rehab_decision_ve/__init__.py",
 "rehab_decision_ve/engine.py",
 "rehab_decision_ve/manhole.py",

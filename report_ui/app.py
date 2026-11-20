@@ -101,7 +101,8 @@ def _won(x: float) -> str:
 # ------------------------------------------------------------------ 사이드바
 base_cfg = load_config()
 st.sidebar.markdown("📗 [쉬운 사용설명서(10쪽)](./mulkko_easy_guide.pdf) · 📖 [사용 안내](./guide.html) · 💡 [용어·개념](./concepts.html) · 📘 [가이드북](./mulkko_guidebook.pdf)")
-st.sidebar.caption("물꼬 v2.5 · 2026.11.20 — [버전별 업데이트](./concepts.html#ver)")
+from report_ui.version import DATE as _VDATE, VERSION as _VER  # noqa: E402
+st.sidebar.caption(f"물꼬 {_VER} · {_VDATE} — [버전별 업데이트](./concepts.html#ver)")
 
 
 @st.cache_data
