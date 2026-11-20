@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>용어·개념 안내 — 물꼬 · 노후하수관로 정비</title>
+<style>
+  :root { --ink:#1d2a24; --sub:#56675e; --line:#d7e2dc; --soft:#f3f7f5; --accent:#2e8b57; --head:#17485c; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background:#fff; color:var(--ink); font: 15px/1.7 "Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif; padding-top: 40px; }
+  /* 물마루 플랫폼 공통 상단바 */
+  .mm-bar { position: fixed; top: 0; left: 0; right: 0; height: 40px; z-index: 1000; display: flex; align-items: center; gap: 14px;
+            padding: 0 16px; overflow: hidden; background: #0f3d2c; border-bottom: 1px solid #082a1e; color: #ecf6f0;
+            font-family: "Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif; line-height: 1; }
+  .mm-bar a { color: inherit; text-decoration: none; outline-offset: 2px; }
+  .mm-bar a:focus-visible { outline: 2px solid #5cc98d; border-radius: 3px; }
+  .mm-logo { display: flex; align-items: center; gap: 7px; flex: none; font-size: 15px; font-weight: 800; color: #ecf6f0; }
+  .mm-sep { width: 1px; height: 18px; flex: none; background: rgba(156,196,173,.35); }
+  .mm-nav { display: flex; align-items: stretch; gap: 16px; height: 100%; min-width: 0; }
+  .mm-nav a { display: flex; align-items: center; gap: 5px; height: 100%; white-space: nowrap; font-size: 13px; color: #9cc4ad;
+              border-bottom: 2px solid transparent; border-top: 2px solid transparent; }
+  .mm-nav a:hover { color: #ecf6f0; }
+  .mm-nav a[aria-current="page"] { color: #ecf6f0; font-weight: 700; border-bottom-color: #5cc98d; }
+  .mm-nav small { font-size: 12px; font-weight: 400; color: #9cc4ad; }
+  .mm-portal { margin-left: auto; flex: none; font-size: 12px; color: #9cc4ad !important; }
+  .mm-portal:hover { color: #ecf6f0 !important; }
+  @media (max-width: 720px) { .mm-nav small, .mm-portal { display: none; } .mm-bar { gap: 10px; padding: 0 10px; } .mm-nav { gap: 12px; } }
+  @media print { .mm-bar, .toc, .back { display: none; } body { padding-top: 0; } }
+
+  main { max-width: 960px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { font-size: 28px; color: var(--head); margin: 8px 0 4px; }
+  .lead { color: var(--sub); margin: 0 0 18px; }
+  h2 { font-size: 21px; color: var(--head); margin: 40px 0 10px; padding-top: 8px; border-top: 2px solid var(--line); scroll-margin-top: 52px; }
+  h3 { font-size: 16px; margin: 22px 0 6px; }
+  p { margin: 6px 0 10px; }
+  a { color: var(--accent); }
+  .back { display: inline-block; margin: 4px 0 14px; font-size: 14px; }
+  .toc { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; columns: 2; column-gap: 28px; }
+  .toc a { display: block; text-decoration: none; padding: 2px 0; }
+  @media (max-width: 600px) { .toc { columns: 1; } }
+  .tbl { width: 100%; overflow-x: auto; margin: 8px 0 14px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 7px 9px; vertical-align: top; text-align: left; }
+  th { background: #e6f1eb; font-weight: 700; white-space: nowrap; }
+  td:first-child { font-weight: 600; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 10px; margin-right: 4px; white-space: nowrap; }
+  .web { background: #e3f3ea; color: #1f6b43; } .pc { background: #eef0f6; color: #3c4a7a; }
+  .must { background: #fdecea; color: #a1332a; } .opt { background: #f1f3f2; color: #56675e; }
+  .note { border-left: 4px solid var(--accent); background: var(--soft); padding: 10px 14px; margin: 12px 0; border-radius: 0 6px 6px 0; }
+  .warn { border-left-color: #c98a1a; background: #fdf6e8; }
+  ol, ul { padding-left: 22px; margin: 6px 0 10px; }
+  li { margin: 3px 0; }
+  code { background: #eef3f0; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 4px; }
+  .flow span { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 14px; }
+  .flow b { color: var(--sub); }
+  .done { color: #1f6b43; font-weight: 700; } .doing { color: #a86b00; font-weight: 700; } .plan { color: #56675e; font-weight: 700; }
+  footer { margin-top: 48px; color: var(--sub); font-size: 13px; border-top: 1px solid var(--line); padding-top: 12px; }
+
+  .eq { background:#f6faf8; border:1px dashed #a9cbb7; border-radius:6px; padding:9px 12px; margin:8px 0 12px; font-size:14px; }
+  .fig { margin:10px 0 14px; border:1px solid var(--line); border-radius:8px; padding:10px; background:#fbfdfc; }
+  .fig svg { width:100%; height:auto; display:block; }
+  .cap { font-size:13px; color:var(--sub); text-align:center; margin-top:4px; }
+  .sv-pipe { stroke:#6b8f7c; stroke-width:12; stroke-linecap:round; }
+  .sv-def { fill:#d23b3b; }
+  .sv-arrow { stroke:#2e8b57; stroke-width:2; stroke-dasharray:4 3; }
+  .sv-patch { fill:#2e8b57; opacity:.75; }
+  .sv-t { font-size:15px; font-weight:700; fill:#1d2a24; } .sv-s { font-size:13px; fill:#56675e; } .sv-g { font-size:13px; font-weight:700; fill:#1d2a24; }
+  .sv-units rect { stroke:#fff; stroke-width:2; } .u1 { fill:#dcefe3; } .u3 { fill:#f6e3a6; } .u4 { fill:#f4b8a6; }
+  .ver { border:1px solid var(--line); border-left:5px solid var(--accent); border-radius:6px; padding:10px 14px; margin:10px 0; }
+  .vh { display:flex; gap:10px; align-items:baseline; } .vh b { font-size:17px; color:var(--head); } .vh span { color:var(--sub); font-size:13px; }
+  .vc { color:#1f6b43; font-size:14px; margin:4px 0 0; }
+</style>
+</head>
+<body>
+<!-- 물마루 공통 상단바: 메뉴 순서는 물의 흐름(수원 → 공급 → 배출·정비) = 물담·물길·물꼬, 포털과 같게 -->
+<header class="mm-bar" role="navigation" aria-label="물마루 플랫폼">
+  <a class="mm-logo" href="https://wonjejj-glitch.github.io/mulmaru/" title="물마루 포털"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 15.5c2.6 0 3.9-1.7 5.3-4.5C8.8 8 10.2 4.8 12 4.8s3.2 3.2 4.7 6.2c1.4 2.8 2.7 4.5 5.3 4.5" fill="none" stroke="#5cc98d" stroke-width="2.3" stroke-linecap="round"/><path d="M2 19.5c2 0 3-1 5-1s3 1 5 1 3-1 5-1 3 1 5 1" fill="none" stroke="#ecf6f0" stroke-width="1.6" stroke-linecap="round" opacity=".7"/></svg>물마루</a>
+  <span class="mm-sep" aria-hidden="true"></span>
+  <nav class="mm-nav">
+    <a href="https://wonjejj-glitch.github.io/muldam/">물담<small>댐 용수공급</small></a>
+    <a href="https://wonjejj-glitch.github.io/mulgil/">물길<small>관망해석</small></a>
+    <a href="https://wonjejj-glitch.github.io/mulkko/" aria-current="page">물꼬<small>하수관로 정비</small></a>
+  </nav>
+  <a class="mm-portal" href="https://wonjejj-glitch.github.io/mulmaru/">포털</a>
+</header>
+
+<main>
+<a class="back" href="./">← 물꼬 프로그램 열기</a> &nbsp;·&nbsp; <a class="back" href="./guide.html">📖 사용 안내</a> &nbsp;·&nbsp; <a class="back" href="./mulkko_easy_guide.pdf">📗 쉬운 사용설명서</a>
+<h1>용어·개념 안내</h1>
+<p class="lead">상하수도 설계자를 위한 노후하수관로 정비 기초 — 물꼬가 무엇을 근거로 판정하는지, 그리고 버전마다 무엇이 바뀌었는지</p>
+
+<nav class="toc" aria-label="목차">
+  <a href="#c1">1. 관망 설계와 무엇이 다른가</a>
+  <a href="#c2">2. CCTV 정밀조사와 결함</a>
+  <a href="#c3">3. 결함 위치 보정</a>
+  <a href="#c4">4. 상태평가 (매뉴얼별)</a>
+  <a href="#c5">5. 보수대상 결함과 근접결함 병합</a>
+  <a href="#c6">6. 부분보수냐 전체보수냐</a>
+  <a href="#c7">7. 굴착이 필요한 경우</a>
+  <a href="#c8">8. 운영결함과 준설</a>
+  <a href="#c9">9. 정비공법 이름</a>
+  <a href="#c10">10. 수량·공사비·총사업비</a>
+  <a href="#c11">11. 맨홀 상태평가</a>
+  <a href="#c12">12. 판정기준과 사업 관행(프리셋)</a>
+  <a href="#c13">13. 자주 헷갈리는 점</a>
+  <a href="#c14">14. 물꼬 사용 순서</a>
+  <a href="#ver"><b>버전별 업데이트와 새 개념</b></a>
+</nav>
+
+<div class="note"><b>물꼬의 취지</b> — 정밀조사 결과를 환경부 매뉴얼의 공개된 기준과 경제성 비교로 정리해, 노후하수관로 정비공법 판정과 수량·공사비 산정을 빠르고 일관되게 하도록 돕는 도구입니다.
+결과는 <b>기본·실시설계의 개략 검토용</b>입니다. 현장 여건, 민원·교통, 지장물, 정비계획 변경 사유 같은 판단은 설계자가 종합해야 합니다.</div>
+
+<h2 id="c1">1. 관망 설계와 무엇이 다른가</h2>
+<p>상수 관망 설계는 <b>“얼마나 흘려야 하나”</b>(수요·수압)를 계산합니다. 노후하수관로 정비는 <b>“이미 묻힌 관이 얼마나 아픈가, 어떻게 고치는 게 싸고 확실한가”</b>를 판단합니다. 출발점이 수리계산이 아니라 <b>조사 결과(결함)</b>입니다.</p>
+<div class="tbl"><table>
+<tr><th>구분</th><th>상수 관망(물길)</th><th>노후하수관로 정비(물꼬)</th></tr>
+<tr><td>불확실한 것</td><td>수요, 수압</td><td>관 속 상태(결함의 종류·크기·위치)</td></tr>
+<tr><td>기준 자료</td><td>관망도, 수요량</td><td>CCTV 정밀조사 조서(결함 위치·등급)</td></tr>
+<tr><td>판단 기준</td><td>최소수압·유속</td><td>환경부 매뉴얼 상태등급 + 공법별 공사비 비교</td></tr>
+<tr><td>결과</td><td>관경·시설용량</td><td>관로별 정비공법(부분보수·전체보수·굴착) + 수량·공사비</td></tr>
+</table></div>
+<div class="note warn"><b>핵심</b> — 같은 결함이라도 <b>어느 매뉴얼</b>(2015·2017·2025)로 평가하느냐, 사업에서 <b>어떤 기준</b>(보수대상 점수, 불량률)을 쓰느냐에 따라 공법이 달라집니다. 숫자를 비교하기 전에 기준부터 맞춰야 합니다.</div>
+
+<h2 id="c2">2. CCTV 정밀조사와 결함</h2>
+<p>관 속에 로봇 카메라를 넣고 진입 맨홀에서부터 거리를 재며 촬영합니다. 결함마다 <b>결함코드, 등급(대·중·소), 거리(m)</b>를 기록한 것이 조서입니다.</p>
+<div class="tbl"><table>
+<tr><th>용어</th><th>뜻</th></tr>
+<tr><td>구조적 결함</td><td>관 자체가 상한 것. 균열(원주·길이·복합), 파손, 표면손상, 이음부 단차·손상·이탈, 변형, 연결관 돌출 등. <b>보수공법</b>을 정하는 근거입니다.</td></tr>
+<tr><td>운영적 결함</td><td>관은 멀쩡한데 흐름을 막는 것. 토사퇴적, 뿌리침입, 임시장애물, 폐유부착 등. 대부분 <b>준설·세정</b>으로 해소합니다.</td></tr>
+<tr><td>등급 대·중·소</td><td>결함의 심한 정도. 매뉴얼 표에서 결함점수로 바뀝니다(예: 균열 대 40점).</td></tr>
+<tr><td>점 결함 / 연속 결함</td><td>한 지점의 결함은 거리 하나, 길게 이어지는 결함은 시작·종료 거리 둘로 적습니다.</td></tr>
+<tr><td>순방향 / 역방향 촬영</td><td>시점→종점으로 찍었는지, 종점→시점으로 찍었는지. 역방향이면 거리를 시점 기준으로 바꿔야 합니다.</td></tr>
+<tr><td>주행거리 / 미주행</td><td>카메라가 실제 들어간 거리. 장애물로 끝까지 못 가면 남은 구간은 미주행(조사 안 됨)입니다.</td></tr>
+</table></div>
+
+<h2 id="c3">3. 결함 위치 보정</h2>
+<p>CCTV가 잰 길이(촬영연장)와 도면의 관로 길이(도면연장)는 보통 조금 다릅니다. 맨홀 안 출발점, 케이블 처짐 때문입니다. 결함을 도면 위 정확한 자리에 놓으려면 비율로 늘이거나 줄입니다.</p>
+<div class="fig"><svg viewBox="0 0 640 170" role="img" aria-label="결함 위치 보정 그림">
+  <text x="10" y="22" class="sv-t">촬영 (CCTV)</text>
+  <line x1="120" y1="40" x2="540" y2="40" class="sv-pipe"/><circle cx="330" cy="40" r="7" class="sv-def"/>
+  <text x="300" y="66" class="sv-s">거리 21.0m</text><text x="520" y="66" class="sv-s">촬영 42.0m</text>
+  <text x="10" y="112" class="sv-t">도면</text>
+  <line x1="120" y1="120" x2="600" y2="120" class="sv-pipe"/><circle cx="360" cy="120" r="7" class="sv-def"/>
+  <text x="325" y="148" class="sv-s">보정 22.5m</text><text x="575" y="148" class="sv-s">도면 45.0m</text>
+  <line x1="330" y1="48" x2="360" y2="112" class="sv-arrow"/>
+</svg><div class="cap">결함 위치 = 조서거리 × 도면연장 ÷ 촬영연장 (21.0 × 45.0 ÷ 42.0 = 22.5m)</div></div>
+<div class="eq">보정위치 = 조서거리 × (도면연장 ÷ 촬영연장) &nbsp;·&nbsp; 역방향 촬영이면 = 도면연장 − 보정위치</div>
+<p>차이가 5%를 넘으면 ⚠️ 경고 탭에 “맨홀 위치·촬영 시작점 재확인”이 뜹니다.</p>
+
+<h2 id="c4">4. 상태평가 (매뉴얼별)</h2>
+<p>결함점수를 모아 관로의 <b>상태등급(1 매우좋음 ~ 5 매우나쁨)</b>을 매깁니다. 매뉴얼마다 모으는 단위가 다릅니다.</p>
+<h3>2017·2025 표준매뉴얼 — 관 1본씩</h3>
+<div class="fig"><svg viewBox="0 0 640 150" role="img" aria-label="본 단위 상태평가 그림">
+  <g class="sv-units">
+    <rect x="40" y="40" width="110" height="34" class="u1"/><rect x="150" y="40" width="110" height="34" class="u4"/>
+    <rect x="260" y="40" width="110" height="34" class="u1"/><rect x="370" y="40" width="110" height="34" class="u3"/>
+    <rect x="480" y="40" width="110" height="34" class="u1"/>
+  </g>
+  <text x="95" y="30" class="sv-s" text-anchor="middle">1본</text><text x="205" y="30" class="sv-s" text-anchor="middle">2본</text>
+  <text x="315" y="30" class="sv-s" text-anchor="middle">3본</text><text x="425" y="30" class="sv-s" text-anchor="middle">4본</text><text x="535" y="30" class="sv-s" text-anchor="middle">5본</text>
+  <text x="95" y="62" class="sv-g" text-anchor="middle">1</text><text x="205" y="62" class="sv-g" text-anchor="middle">4 (균열 대 40점)</text>
+  <text x="315" y="62" class="sv-g" text-anchor="middle">1</text><text x="425" y="62" class="sv-g" text-anchor="middle">3 (20점)</text><text x="535" y="62" class="sv-g" text-anchor="middle">1</text>
+  <text x="320" y="110" class="sv-t" text-anchor="middle">구간 상태점수 = (1+4+1+3+1) ÷ 5 = 2.00 · 최대 본 등급 4</text>
+</svg><div class="cap">본마다 가장 큰 결함점수로 등급을 매기고, 관로 전체는 본 등급의 평균</div></div>
+<div class="tbl"><table>
+<tr><th>본 결함점수</th><th>70 이상</th><th>40 이상</th><th>20 이상</th><th>10 이상</th><th>그 외</th></tr>
+<tr><td>본 등급</td><td>5</td><td>4</td><td>3</td><td>2</td><td>1</td></tr>
+</table></div>
+<ul>
+  <li><b>관 1본 길이</b>: 흄관·콘크리트관 2.5m, PE·PVC·주철관 6m. 조서에 실제 이음부 위치가 있으면 그 위치로 나눕니다.</li>
+  <li><b>이음부 결함</b>(단차·손상·이탈)은 이음부 앞뒤 두 본 모두에 반영합니다.</li>
+  <li>구간 상태점수가 <b>4.0 이상</b>이면 매뉴얼은 구간 전체 보수(전체보수·교체)를 권합니다.</li>
+  <li><b>2025 매뉴얼</b>은 구조결함 지점에 침입수가 함께 있으면 점수를 더합니다(중 +10, 대 +20). 강성관·연성관의 점수표도 나눕니다.</li>
+</ul>
+<h3>2015 정밀조사 매뉴얼 — 1m 구간씩</h3>
+<p>1m마다 그 안의 결함점수를 모두 더합니다. <b>최대값</b>(가장 나쁜 1m)과 <b>평균값</b>(총점 ÷ 조사길이)으로 상태를 정하고, 불량비(이상항목 개소 ÷ 연장)가 0.2 이상이면서 평균이 '불량'이면 전체보수 대상입니다. 구조 최대값이 50을 넘으면 긴급보수입니다.</p>
+<div class="note">한 사업 안에서도 조사 시기에 따라 2015와 2017을 섞어 쓰기도 합니다. 조서의 <b>적용매뉴얼</b> 열에 관로마다 적어 두면 관로별로 따로 평가합니다.</div>
+
+<h2 id="c5">5. 보수대상 결함과 근접결함 병합</h2>
+<p>모든 결함을 고치지는 않습니다. 결함점수가 <b>보수대상 기준</b>(2017 매뉴얼 기본 20점) 이상인 구조결함만 보수합니다. 그보다 가벼운 결함은 유지관리 대상입니다.</p>
+<p>보수대상 결함이 가까이 붙어 있으면 하나씩 따로 고치는 것보다 한 번에 길게 고치는 게 쌉니다. 이것이 <b>근접결함 병합</b>입니다.</p>
+<div class="fig"><svg viewBox="0 0 640 140" role="img" aria-label="근접결함 병합 그림">
+  <line x1="30" y1="50" x2="610" y2="50" class="sv-pipe"/>
+  <circle cx="200" cy="50" r="7" class="sv-def"/><circle cx="250" cy="50" r="7" class="sv-def"/><circle cx="470" cy="50" r="7" class="sv-def"/>
+  <rect x="178" y="68" width="94" height="16" class="sv-patch"/><rect x="455" y="68" width="30" height="16" class="sv-patch"/>
+  <text x="225" y="34" class="sv-s" text-anchor="middle">이격 1.0m → 병합</text><text x="470" y="34" class="sv-s" text-anchor="middle">단독</text>
+  <text x="225" y="106" class="sv-s" text-anchor="middle">부분보수 1.5m × 1개소</text><text x="470" y="106" class="sv-s" text-anchor="middle">1.0m × 1개소</text>
+</svg><div class="cap">결함 사이가 1.2m 이내면 한 구간으로 묶고, 양쪽 여유 0.3m를 더해 표준 규격으로 맞춥니다</div></div>
+<div class="eq">보수 길이 = 구간 길이 + 0.3m × 2 → 표준 규격 1.0 / 1.5 / 2.0 / 2.5 / 3.0m (3.0m 초과는 여러 개소로 나눔)</div>
+
+<h2 id="c6">6. 부분보수냐 전체보수냐</h2>
+<p>보수대상 결함이 정해지면, 그 결함만 고칠지(부분보수) 관 안쪽 전체를 새로 씌울지(전체보수) 정합니다.</p>
+<div class="tbl"><table>
+<tr><th>지표</th><th>계산</th><th>기본 기준</th></tr>
+<tr><td>불량률</td><td>결함이 있는 관 본수 ÷ 전체 본수 (또는 보수연장 ÷ 관로연장)</td><td>25% 이상이면 전체보수</td></tr>
+<tr><td>손익분기</td><td>병합 후 부분보수 공사비 ÷ 전체보수 공사비</td><td>75% 이상이면 전체보수</td></tr>
+<tr><td>매뉴얼 규칙</td><td>구간 상태점수(2017·2025)</td><td>4.0 이상이면 전체보수</td></tr>
+</table></div>
+<p>셋 중 하나라도 걸리면 <b>비굴착 전체보수</b>, 아니면 <b>비굴착 부분보수</b>입니다. 판정 이유는 관로마다 <b>선정사유 문장</b>으로 남습니다.</p>
+
+<h2 id="c7">7. 굴착이 필요한 경우</h2>
+<p>관이 크게 깨지거나 찌그러지면(파손·변형 대 등) 비굴착 보수재가 붙지 않습니다. 이런 <b>시공불가 결함</b>이 있으면 땅을 팝니다.</p>
+<div class="tbl"><table>
+<tr><th>상황</th><th>판정</th></tr>
+<tr><td>시공불가 결함이 한두 곳</td><td><b>부분굴착</b>(그 구간만 파서 교체, 최소 4.0m + 양쪽 1.5m) + 나머지는 비굴착</td></tr>
+<tr><td>시공불가 결함이 많음(기본 3곳 이상) 또는 굴착 길이가 관로의 40% 이상</td><td><b>굴착교체(동경)</b> — 같은 관경 새 관</td></tr>
+<tr><td>부분굴착+비굴착 공사비가 전체 굴착의 85% 이상</td><td><b>굴착교체</b>가 더 경제적</td></tr>
+<tr><td>통수능 부족(SWMM 검토)</td><td><b>굴착교체(증경)</b> — 한 단계 큰 관</td></tr>
+</table></div>
+<p>굴착 깊이(H)에 따라 굴착 방식과 가시설이 달라집니다: H 2.5m 미만은 사면굴착, 4.0m 미만은 간이흙막이, 그 이상은 강재토류판. 실제 설계는 지반·지장물에 따라 시트파일 등 더 큰 가시설을 쓰는 경우가 많아, <b>물꼬의 굴착 공사비는 설계보다 낮게</b> 나오는 편입니다.</p>
+
+<h2 id="c8">8. 운영결함과 준설</h2>
+<p>토사퇴적·뿌리침입처럼 흐름만 막는 결함은 관을 고치지 않고 <b>준설·세정</b>으로 해소합니다. 비굴착 보수를 할 관로는 시공 전에 반드시 준설·세정과 시공 전·후 CCTV를 함께 계상합니다. 연결관(가정 하수관)이 본관 안으로 튀어나온 <b>돌출관</b>은 로봇 커터로 잘라냅니다.</p>
+
+<h2 id="c9">9. 정비공법 이름</h2>
+<div class="tbl"><table>
+<tr><th>물꼬 표기</th><th>뜻</th><th>현장 공법 예</th></tr>
+<tr><td>비굴착 부분보수</td><td>땅을 파지 않고 결함 구간(1.0~3.0m)만 보수</td><td>부분 라이닝(패커식) 등</td></tr>
+<tr><td>비굴착 전체보수</td><td>땅을 파지 않고 맨홀 사이 전체를 새로 씌움</td><td>반전·형성 라이닝(CIPP) 등</td></tr>
+<tr><td>부분굴착+비굴착</td><td>시공불가 구간만 파서 교체하고 나머지는 비굴착</td><td>—</td></tr>
+<tr><td>굴착교체(동경/증경)</td><td>땅을 파서 같은 관경/큰 관경 새 관으로</td><td>개착 교체</td></tr>
+<tr><td>준설/세정</td><td>보수 없이 관 속 청소만</td><td>고압세정, 준설</td></tr>
+<tr><td>개량제외</td><td>보수 기준 미달 — 유지관리 대상</td><td>—</td></tr>
+</table></div>
+
+<h2 id="c10">10. 수량·공사비·총사업비</h2>
+<p>공법이 정해지면 공종별 수량이 나오고, 단가를 곱해 공사비가 됩니다.</p>
+<div class="eq">직접공사비(수량 × 단가) → 원가계산(간접노무비·경비·일반관리비·이윤 등) = 도급 공사비 → 총공사비 → 총사업비</div>
+<div class="tbl"><table>
+<tr><th>단계</th><th>더해지는 것</th></tr>
+<tr><td>직접공사비</td><td>공종별 수량 × 단가(재료비·노무비·경비)</td></tr>
+<tr><td>도급 공사비</td><td>원가계산서 요율(간접노무비, 산재·고용보험, 안전관리비, 일반관리비, 이윤 등)</td></tr>
+<tr><td>총공사비</td><td>도급 공사비 + 맨홀보수 + 관급자재 + 폐기물처리 + CCTV조사·수밀시험 + GIS DB 구축</td></tr>
+<tr><td>총사업비</td><td>총공사비 + 시설부대경비(설계비 + 감리비 + 시설부대비)</td></tr>
+</table></div>
+<p>감리비·시설부대비 요율은 「하수도분야 보조금 편성 및 집행관리 실무요령」을 따릅니다. 금액을 모르는 항목은 실제 사업 비율로 <b>추정</b>하고 비고에 '추정'으로 표시합니다.</p>
+
+<h2 id="c11">11. 맨홀 상태평가</h2>
+<p>맨홀도 결함점수로 평가합니다(2017 표준매뉴얼 맨홀 점수표). 조사기관 실무는 맨홀을 <b>블록 이음부로 나눈 단위구간</b>마다 최대 등급을 매기고 그 <b>평균</b>을 맨홀 구조등급으로 씁니다. 그래서 1.5, 2.33 같은 소수 등급이 나옵니다.</p>
+<div class="tbl"><table>
+<tr><th>결함</th><th>보수공법</th></tr>
+<tr><td>뚜껑 결함·뚜껑밀폐</td><td>맨홀뚜껑설치</td></tr>
+<tr><td>인버트결함</td><td>인버트설치</td></tr>
+<tr><td>표면손상·파손·변형(내부, 대·중)</td><td>맨홀내부파손보수</td></tr>
+<tr><td>하수관로 접속부 이상·돌출(대)</td><td>맨홀관거접합부보수</td></tr>
+<tr><td>외부 손상·표면단차</td><td>맨홀주변부보수</td></tr>
+<tr><td>구조 4등급대 / 5등급</td><td>내벽라이닝 / 맨홀재설치</td></tr>
+</table></div>
+
+<h2 id="c12">12. 판정기준과 사업 관행(프리셋)</h2>
+<p>매뉴얼 기본값으로 판정한 결과는 실제 설계와 다를 수 있습니다. 사업마다 예산, 정비 범위, 발주처 방침이 달라 <b>보수대상을 더 엄격하게</b> 잡거나 <b>전체보수를 일찍</b> 택하기 때문입니다.</p>
+<div class="tbl"><table>
+<tr><th>기준</th><th>매뉴얼 기본</th><th>실제 사업 예(00사업)</th><th>효과</th></tr>
+<tr><td>보수대상 결함점수</td><td>20점 이상</td><td>50점 이상</td><td>가벼운 결함은 고치지 않음 → 부분보수 개소 감소</td></tr>
+<tr><td>전체보수 전환 불량률</td><td>25%</td><td>10%</td><td>결함이 퍼진 관은 일찍 전체보수</td></tr>
+<tr><td>부분굴착 허용 개소</td><td>2</td><td>3</td><td>굴착교체 대신 부분굴착을 더 많이</td></tr>
+</table></div>
+<p>실제 사업에서는 기본 기준으로 부분보수가 2,475개소 나왔지만, 위 기준으로 바꾸자 320개소(설계 298개소)로 설계 총량과 거의 같아졌습니다. 이렇게 찾은 기준 묶음을 <b>프리셋</b>으로 저장해 같은 성격의 다음 사업에 씁니다. 사이드바나 프리셋에서 정한 기준은 매뉴얼 기본값보다 항상 우선합니다.</p>
+
+<h2 id="c13">13. 자주 헷갈리는 점</h2>
+<div class="tbl"><table>
+<tr><th>헷갈리는 것</th><th>정리</th></tr>
+<tr><td>상태등급 4와 보수대상</td><td>상태등급은 관로 전체의 건강 점수, 보수대상은 결함 하나의 기준입니다. 상태 2등급 관로에도 보수대상 결함이 있을 수 있습니다.</td></tr>
+<tr><td>결함 개소와 부분보수 개소</td><td>근접결함을 병합하므로 부분보수 개소는 결함 개소보다 적습니다.</td></tr>
+<tr><td>조사기관 등급과 물꼬 등급이 다름</td><td>이음부 위치 표기 누락, 중단·역방향 조사 구간의 본 수 차이가 주된 원인입니다. 실제 사업 5,130관로에서 약 88~89%가 일치했습니다.</td></tr>
+<tr><td>공사비가 설계보다 낮음</td><td>가시설(시트파일 등)과 부대공을 개략으로만 잡기 때문입니다. 사업비 검토 때는 여유를 둡니다.</td></tr>
+<tr><td>웹(공개판)과 PC 결과가 다름</td><td>웹은 예시 단가, PC는 실제 사업 단가를 씁니다. 판정은 같고 공사비만 다릅니다.</td></tr>
+</table></div>
+
+<h2 id="c14">14. 물꼬 사용 순서</h2>
+<ol>
+  <li>조사 자료 준비: 정밀조사 조서 엑셀(없고 PDF뿐이면 PC의 PDF 판독으로 조서 생성)</li>
+  <li>물꼬에 조서를 올리고, 적용 매뉴얼과 사업 기준(프리셋)을 맞춤</li>
+  <li>📋 관로별 조서·⚠️ 경고 탭으로 판정과 이상 자료 검토</li>
+  <li>필요하면 SWMM(통수능)·GIS(좌표)·맨홀 자료를 추가</li>
+  <li>📐 수량·공사비 탭에서 단가와 총사업비 항목 확인</li>
+  <li>⬇️ 출력 탭에서 수량산출서·설계보고서 초안·내역서·도면을 받아 설계도서에 반영</li>
+</ol>
+
+<h2 id="ver">버전별 업데이트와 새 개념</h2>
+<p>물꼬가 버전마다 무엇을 할 수 있게 됐는지, 그때 새로 알아야 할 개념은 무엇인지 정리했습니다. 최신 버전이 위에 있습니다.</p>
+
+<div class="ver"><div class="vh"><b>v2.5</b><span>2026.11.20</span></div>
+<p><b>문서와 백업 정비</b> — 가이드북(48쪽)과 쉬운 사용설명서의 화면 그림을 지금 화면으로 바꾸고, 맨홀 탭·총사업비 그림을 추가. 원본을 비공개 저장소에 백업. 이 용어·개념 안내 페이지 추가.</p></div>
+
+<div class="ver"><div class="vh"><b>v2.4</b><span>2026.11.15</span></div>
+<p><b>새 양식 보고서 판독과 사업 관행 보정</b> — 바닥글이 없는 2023년 양식, 숫자와 m이 나뉜 거리 라벨도 판독(PDF 5권 22,799쪽, 5,131관로, 결함 109,412건). 판정 총량을 실제 설계와 맞추는 프리셋 도입, 프리셋 기준이 매뉴얼 기본값에 덮이던 문제 수정.</p>
+<p class="vc">새 개념 → <a href="#c12">판정기준과 사업 관행(프리셋)</a>: 같은 조사 결과라도 사업 기준에 따라 부분보수가 2,475개소도, 320개소도 될 수 있습니다.</p></div>
+
+<div class="ver"><div class="vh"><b>v2.3</b><span>2026.11.15</span></div>
+<p><b>총사업비와 안내 문서</b> — 재정계획 소요사업비 표(총공사비 + 시설부대경비) 추가, 보고서 초안에 반영. 사용 안내 페이지, 공개 가이드북, 쉬운 사용설명서(10쪽), 조서 입력 양식 내려받기.</p>
+<p class="vc">새 개념 → <a href="#c10">수량·공사비·총사업비</a>: 도급 공사비만이 아니라 폐기물·CCTV·GIS DB와 설계·감리비까지 더해야 총사업비입니다.</p></div>
+
+<div class="ver"><div class="vh"><b>v2.2</b><span>2026.11.15</span></div>
+<p><b>물마루 플랫폼</b> — 물담(댐 용수공급)·물길(관망해석)·물꼬(하수관로 정비)를 잇는 공통 상단바. 물의 흐름(수원 → 공급 → 배출·정비) 순서로 메뉴 배치.</p></div>
+
+<div class="ver"><div class="vh"><b>v2.1</b><span>2026.11.15</span></div>
+<p><b>설계도서 출력</b> — 실무 양식 수량산출서(총괄표·비굴착/굴착 집계표·단면 산출근거, 엑셀 수식 연동)와 설계보고서 초안(Word) 자동 작성.</p>
+<p class="vc">새 개념 → <a href="#c7">굴착 단면</a>: 터파기 = 단면적 × 연장, 되메우기 = (단면적 − 모래기초 − 관) × 연장처럼 수량이 단면에서 나옵니다.</p></div>
+
+<div class="ver"><div class="vh"><b>v2.0</b><span>2026.11.15</span></div>
+<p><b>물꼬 웹 공개판</b> — 설치 없이 주소 하나로 브라우저에서 실행. 계산은 내 기기 안에서만 하고, 실행 파일을 모두 물꼬 주소에서 받아 외부 CDN이 막힌 회사망에서도 열림. 웹에 맨홀 탭 추가.</p>
+<p class="vc">알아둘 점 → 공개판은 예시 단가입니다. 판정은 PC와 같고 공사비만 다릅니다.</p></div>
+
+<div class="ver"><div class="vh"><b>v1.2</b><span>2026.11.14</span></div>
+<p><b>맨홀 정비</b> — 맨홀 현장조사 보고서 PDF 판독, 2017 매뉴얼 맨홀 상태등급, 실제 설계 공종 기준 보수공법·수량·보수비(설계 맨홀보수 금액 99.7% 재현).</p>
+<p class="vc">새 개념 → <a href="#c11">맨홀 상태평가</a>: 조사기관은 블록 이음부 단위구간 평균으로 등급을 냅니다(최대값만 쓰면 64.5%, 단위 평균이면 94.8% 일치).</p></div>
+
+<div class="ver"><div class="vh"><b>v1.1</b><span>2026.11.13</span></div>
+<p><b>실제 단가</b> — 설계내역서(STmate 엑셀)에서 공종 단가와 원가계산 요율을 가져와 프로그램 단가표로 사용. 원가계산서에 하도급·건설기계 보증수수료, 석면피해구제분담금 등 추가.</p>
+<p class="vc">새 개념 → <a href="#c10">원가계산</a>: 직접공사비에 요율을 곱해 도급 공사비가 됩니다(실제 사업 직접→도급 환산 약 1.6배).</p></div>
+
+<div class="ver"><div class="vh"><b>v1.0</b><span>2026.11.13 이전</span></div>
+<p><b>관로 판정 엔진</b> — 조서 읽기, 결함 위치 보정, 근접결함 병합, 굴착/비굴착 VE 판정과 선정사유, 수량·개략공사비, 결함도면(DXF)·AutoCAD 주석(LSP), 대시보드. 2015·2017·2025 매뉴얼, SWMM 통수능·GIS 좌표 연동. CCTV 보고서 PDF의 거리 라벨 판독과 조사기관 등급 검증(2015 기준 평균등급 92% 일치).</p>
+<p class="vc">기본 개념 → <a href="#c3">위치 보정</a> · <a href="#c4">상태평가</a> · <a href="#c5">병합</a> · <a href="#c6">부분/전체보수</a> · <a href="#c7">굴착</a></p></div>
+
+<footer>물꼬 · 물마루 플랫폼 · 용어·개념 안내 (v2.5 기준). <a href="./">물꼬 열기</a> · <a href="./guide.html">사용 안내</a> · <a href="https://wonjejj-glitch.github.io/mulmaru/">물마루 포털</a></footer>
+</main>
+
+</body>
+</html>
