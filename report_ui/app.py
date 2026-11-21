@@ -40,7 +40,8 @@ PRICE_KEYS = {
 }
 METHOD_COLORS = ["#d62728", "#c51bcb", "#ff7f0e", "#1f4fd6", "#2ca02c", "#17becf", "#9e9e9e"]
 
-st.set_page_config(page_title="물꼬 · 노후하수관로 정비 통합 설계 플랫폼", layout="wide", page_icon="🛠️")
+st.set_page_config(page_title="물꼬 · 노후하수관로 정비 통합 설계 플랫폼", layout="wide",
+                   page_icon=str(Path(__file__).with_name("favicon.svg")))   # index.html 탭 아이콘과 같은 그림
 
 
 def _app_password() -> str:
@@ -100,9 +101,71 @@ def _won(x: float) -> str:
 
 # ------------------------------------------------------------------ 사이드바
 base_cfg = load_config()
-st.sidebar.markdown("📗 [쉬운 사용설명서(10쪽)](./mulkko_easy_guide.pdf) · 📖 [사용 안내](./guide.html) · 💡 [용어·개념](./concepts.html) · 📘 [가이드북](./mulkko_guidebook.pdf)")
 from report_ui.version import DATE as _VDATE, VERSION as _VER  # noqa: E402
-st.sidebar.caption(f"물꼬 {_VER} · {_VDATE} — [버전별 업데이트](./concepts.html#ver)")
+st.sidebar.caption("📖 [사용 안내](./guide.html) — 넣는 자료·화면 구성·판정 기준·자주 묻는 질문")
+
+_HEADER_CSS = """<style>
+.mk-band{background:#1e3a2f;color:#fff;border-radius:10px;padding:10px 16px 12px;font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;line-height:1.35}
+.mk-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+.mk-id{display:flex;align-items:center;gap:10px;flex:1 1 260px;min-width:0}
+.mk-id img{width:28px;height:28px;flex:none}
+.mk-name{font-size:21px;font-weight:800;color:#fff}.mk-name small{font-size:14px;font-weight:700;color:#e3efe8;margin-left:6px}
+.mk-links{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px}
+.mk-links a{color:#fff !important;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+.mk-links a:hover{color:#8fe0b6 !important}
+.mk-band a:focus-visible,.mk-how summary:focus-visible{outline:2px solid #5cc98d;outline-offset:2px;border-radius:3px}
+.mk-how{margin-top:8px}
+.mk-how summary{list-style:none;cursor:pointer;font-size:12px;color:#cfe3d7;text-align:right;margin-bottom:4px}
+.mk-how summary::-webkit-details-marker{display:none}
+.mk-how summary::after{content:"사용법 접기 ▴"}
+.mk-how:not([open]) summary::after{content:"사용법 펴기 ▾"}
+.mk-steps{display:flex;align-items:stretch;gap:6px}
+.mk-step{flex:1 1 0;min-width:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:7px 12px}
+.mk-step.on{border-color:#5cc98d;box-shadow:0 0 0 1px #5cc98d inset}
+.mk-step b{display:block;font-size:14px;color:#fff}.mk-step b i{font-style:normal;color:#8fe0b6;margin-right:4px}
+.mk-step span{display:block;font-size:12px;color:#cfe3d7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk-step .ok{color:#8fe0b6;margin-left:4px}
+.mk-step span.mk-state{white-space:normal;word-break:break-all}
+.mk-arrow{align-self:center;color:#8fe0b6;font-size:14px;flex:none}
+[data-testid="stMainBlockContainer"]{padding-top:3.6rem}
+@media (max-width:900px){.mk-steps{flex-wrap:wrap}.mk-step{flex:1 1 calc(50% - 6px)}.mk-arrow{display:none}}
+@media (max-width:480px){.mk-step{flex-basis:100%}}
+@media print{.mk-links,.mk-how{display:none}}
+</style>"""
+
+
+def _header(state: str, loaded: bool) -> None:
+    """화면 맨 위 머리글 띠(C안): 이름 + 안내 링크 / 작업 순서 ①~④(현재 단계 강조).
+
+    state: ①칸 보조 문구(녹화 도구가 '.mk-state'에서 '관로' 글자로 로딩 완료를 판단)."""
+    import base64
+    try:
+        icon = '<img alt="" src="data:image/svg+xml;base64,' + base64.b64encode(
+            Path(__file__).with_name("favicon.svg").read_bytes()).decode() + '">'
+    except OSError:
+        icon = ""
+    on1, on3 = ("", " on") if loaded else (" on", "")
+    ok = '<span class="ok" style="display:inline">✓</span>' if loaded else ""
+    st.html(_HEADER_CSS + f"""<div class="mk-band">
+  <div class="mk-top">
+    <div class="mk-id">{icon}<div class="mk-name">물꼬<small>노후하수관로 정비 설계</small></div></div>
+    <div class="mk-links">
+      <a href="./mulkko_easy_guide.pdf" target="_blank" rel="noopener">쉬운 사용설명서</a>
+      <a href="./concepts.html" target="_blank" rel="noopener">용어·개념</a>
+      <a href="./mulkko_guidebook.pdf" target="_blank" rel="noopener">가이드북</a>
+      <a href="./concepts.html#ver" target="_blank" rel="noopener">{_VER} · 버전 기록</a>
+    </div>
+  </div>
+  <details class="mk-how" open><summary></summary>
+  <div class="mk-steps">
+    <div class="mk-step{on1}"><b><i>①</i>조서 올리기{ok}</b><span class="mk-state">{state}</span></div>
+    <div class="mk-arrow">→</div>
+    <div class="mk-step"><b><i>②</i>판정 기준 확인</b><span>사이드바 슬라이더 · 매뉴얼 기준</span></div>
+    <div class="mk-arrow">→</div>
+    <div class="mk-step{on3}"><b><i>③</i>결과 확인</b><span>총괄 · 관로 상세 · 수량·공사비</span></div>
+    <div class="mk-arrow">→</div>
+    <div class="mk-step"><b><i>④</i>성과품 출력</b><span>⬇️ 출력 탭</span></div>
+  </div></details></div>""")
 
 
 @st.cache_data
@@ -185,8 +248,7 @@ cfg = with_criteria(cfg, merge_gap_m=merge_gap, defect_rate_threshold_pct=rate_t
 
 # ------------------------------------------------------------------ 조서를 올리기 전: 빈 화면
 if data_bytes is None:
-    st.title("🛠️ 물꼬 — 노후하수관로 정비 통합 설계 플랫폼")
-    st.caption("정밀조사 판독부터 공법 판정·수량·공사비·도면까지 — CCTV 결함 병합 · 굴착/비굴착 VE 판정 · 수량/개략공사비 · CAD 주석 자동 생성")
+    _header("사이드바 · 예제 자료로 시연 가능", False)
     st.info("📂 왼쪽 **조사 데이터**에 정밀조사 조서(.xlsx)를 올리면 계산이 시작됩니다. "
             "자료가 없으면 왼쪽 **🎬 예제 자료**에서 예제 조서를 받아 올려 보세요. "
             "빈 양식은 **📄 조서 입력 양식 받기**로 받을 수 있습니다.")
@@ -226,10 +288,9 @@ base_pipes, _ = _build(base_cfg)
 base_res = run_pipes(base_pipes, base_cfg)
 
 # ------------------------------------------------------------------ KPI
-st.title("🛠️ 물꼬 — 노후하수관로 정비 통합 설계 플랫폼")
-st.caption("정밀조사 판독부터 공법 판정·수량·공사비·도면까지 — CCTV 결함 병합 · 굴착/비굴착 VE 판정 · 수량/개략공사비 · CAD 주석 자동 생성")
 _n_pipes, _len_all = len(res.pipes), sum(p.plan_length_m for p in res.pipes)
-st.success(f"📂 **{data_name}** — 관로 {_n_pipes:,}개, 총연장 {_len_all:,.1f}m로 계산한 결과입니다.")
+import html as _html  # noqa: E402
+_header(f"{_html.escape(data_name)} · 관로 {_n_pipes:,}본 · {_len_all:,.1f}m", True)
 
 
 def _len(r, ms):

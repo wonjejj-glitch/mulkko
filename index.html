@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>물꼬 · 노후하수관로 정비 통합 설계 플랫폼</title>
 <link rel="stylesheet" href="./vendor/stlite/stlite.css" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <style>
   :root { color-scheme: light; }
   html, body { margin: 0; height: 100%; overflow: hidden; }
@@ -56,9 +57,9 @@
 import { mount } from "./vendor/stlite/stlite.js";
 const msg = document.getElementById("msg");
 try {
-  const list = await (await fetch("./files.json?b=4ae2c7ad14", { cache: "no-cache" })).json();
+  const list = await (await fetch("./files.json?b=ffef0f40c5", { cache: "no-cache" })).json();
   const files = {};
-  for (const f of list) files[f] = { url: "./" + encodeURI(f) + "?b=4ae2c7ad14" };   // 배포마다 바뀌는 번호로 브라우저 캐시 무효화
+  for (const f of list) files[f] = { url: "./" + encodeURI(f) + "?b=ffef0f40c5" };   // 배포마다 바뀌는 번호로 브라우저 캐시 무효화
   mount({
     requirements: ["openpyxl", "ezdxf", "altair", "pyshp", "pyproj"],
     entrypoint: "report_ui/app.py",
