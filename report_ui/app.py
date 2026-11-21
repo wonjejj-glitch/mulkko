@@ -23,8 +23,8 @@ from common.models import METHODS  # noqa: E402
 from common.pipeline import run_pipes  # noqa: E402
 from defect_processor.loader import build_pipes, read_tables  # noqa: E402
 from report_ui import tables as T  # noqa: E402
-from gis_link import apply_gis, export_geojson  # noqa: E402
-from swmm_link import apply_swmm, parse_inp, parse_rpt  # noqa: E402
+from gis_link import apply_gis  # noqa: E402
+from swmm_link import apply_swmm  # noqa: E402
 from report_ui.cost_statement import export_cost_statement  # noqa: E402
 from report_ui.excel_report import build_workbook  # noqa: E402
 from report_ui.sensitivity import sweep  # noqa: E402
@@ -179,7 +179,7 @@ st.sidebar.header("📂 조사 데이터")
 st.sidebar.download_button("📄 조서 입력 양식 받기", _survey_template(), file_name="정밀조사_조서_입력양식.xlsx",
                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                            help="관로제원·결함내역 두 시트. 노란 머리글이 필수 열입니다.")
-up_file = st.sidebar.file_uploader("nPASS / PipeAsset 조서 (.xlsx)", type=["xlsx", "xls"])
+up_file = st.sidebar.file_uploader("정밀조사 조서 (.xlsx) — nPASS·PipeAsset 형식 가능", type=["xlsx", "xls"])
 DEMO_PACK = ROOT / "sample_data" / "시연용_예제자료.zip"
 if up_file is not None:
     data_bytes, data_name = up_file.getvalue(), up_file.name
@@ -193,30 +193,10 @@ with st.sidebar.expander("🎬 예제 자료 (시연·연습용)"):
     if DEMO_PACK.exists():
         st.download_button("예제 자료 묶음(.zip) 받기", DEMO_PACK.read_bytes(), file_name="물꼬_시연용_예제자료.zip",
                            mime="application/zip", key="dl_demo_pack",
-                           help="조서 + 맨홀 조서 + SWMM(.inp/.rpt) + GIS(관로선·맨홀점) + 시연 순서 안내")
-with st.sidebar.expander("🌊 SWMM 연동 (선택)"):
-    inp_file = st.file_uploader("SWMM 모델 (.inp)", type=["inp"])
-    rpt_file = st.file_uploader("SWMM 결과 (.rpt)", type=["rpt"])
+                           help="조서 + 맨홀 조서 + 시연 순서 안내")
+# SWMM·GIS 연동은 화면에서 제외(기능 과다). 통수능은 조서의 설계유량 열로 개략 검토(증경 판정 유지).
 swmm_model, swmm_results = None, None
-if inp_file is not None:
-    with tempfile.TemporaryDirectory() as _td:
-        (Path(_td) / "m.inp").write_bytes(inp_file.getvalue())
-        swmm_model = parse_inp(Path(_td) / "m.inp")
-        if rpt_file is not None:
-            (Path(_td) / "m.rpt").write_bytes(rpt_file.getvalue())
-            swmm_results = parse_rpt(Path(_td) / "m.rpt")
 gis_state: dict = {"lines": None, "points": None, "crs": None, "source_crs": None, "use_length": False}
-with st.sidebar.expander("🗺️ GIS 연동 (선택)"):
-    st.caption("관로선(.geojson/.zip[shp])과 맨홀점(.zip[shp]/.geojson)을 올리면 좌표·선형이 결합됩니다.")
-    gl_file = st.file_uploader("GIS 관로선", type=["geojson", "json", "zip"], key="gis_lines")
-    gp_file = st.file_uploader("GIS 맨홀점", type=["geojson", "json", "zip"], key="gis_points")
-    gis_state["source_crs"] = st.text_input("입력 좌표계(비워두면 자동)", "", placeholder="EPSG:5186") or None
-    gis_state["use_length"] = st.checkbox("GIS 선형 길이를 도면연장으로 사용", value=False)
-    _gdir = Path(tempfile.mkdtemp(prefix="gis_up_"))
-    for key, f in (("lines", gl_file), ("points", gp_file)):
-        if f is not None:
-            (_gdir / f.name).write_bytes(f.getvalue())
-            gis_state[key] = _gdir / f.name
 project = st.sidebar.text_input("사업명", "노후하수관로 정비사업")
 
 st.sidebar.header("📘 조사·평가 매뉴얼")
@@ -228,25 +208,63 @@ st.sidebar.caption(base_cfg["manual_title"])
 
 st.sidebar.header("⚙️ 판정기준 (VE 파라미터)")
 c0 = base_cfg["criteria"]
-merge_gap = st.sidebar.slider("부분보수 병합 이격거리 (m)", 0.0, 3.0, float(c0["merge_gap_m"]), 0.1,
+_REPAIR_KEY = f"repair_min_{manual_sel}"          # 보수대상 점수는 매뉴얼마다 기본값이 다름(2015 15.1점, 2017·2025 20점)
+_BLOCKERS = {"default": "기본(파손·변형 등 중 이상)", "A_only": "대 등급만 굴착", "none": "굴착 최소화(붕괴·역경사만)"}
+_DEFAULTS = {_REPAIR_KEY: float(c0["repair_min_score"]), "merge_gap": float(c0["merge_gap_m"]),
+             "use_rate": True, "rate_th": float(c0["defect_rate_threshold_pct"]),
+             "use_be": True, "breakeven": int(round(float(c0["breakeven_ratio"]) * 100)),
+             "use_manual_rule": bool(c0.get("manual_full_rule", True)),
+             "blocker": "default", "max_dig": int(c0["max_partial_excavations"])}
+for _k, _v in _DEFAULTS.items():
+    st.session_state.setdefault(_k, _v)
+
+
+def _preset(kind: str) -> None:
+    """기준 묶음 한 번에 적용(버튼 콜백)."""
+    for k, v in _DEFAULTS.items():
+        st.session_state[k] = v
+    if kind == "pure":
+        st.session_state.update(use_rate=False, use_be=False, use_manual_rule=False)
+    elif kind == "strict":                         # 실제 사업 설계 총량에 맞춰 찾은 관행 예
+        st.session_state.update({_REPAIR_KEY: 50.0, "rate_th": 10.0, "max_dig": 3})
+
+
+_b = st.sidebar.columns(3)
+_b[0].button("매뉴얼 기본", on_click=_preset, args=("default",), width="stretch",
+             help="모든 기준을 선택한 매뉴얼의 기본값으로 되돌립니다.")
+_b[1].button("순수 판정", on_click=_preset, args=("pure",), width="stretch",
+             help="전체보수 전환 규칙(불량률·손익분기·매뉴얼 규칙)을 모두 끕니다. 결함별 부분보수 + 시공불가 결함 굴착만으로 판정.")
+_b[2].button("엄격형", on_click=_preset, args=("strict",), width="stretch",
+             help="실제 사업 설계 관행 예: 보수대상 50점 이상, 불량률 10%에서 전체보수, 부분굴착 3개소까지.")
+
+st.sidebar.markdown("**① 보수대상 · 병합**")
+repair_min = st.sidebar.slider("보수대상 결함점수 (점 이상)", 5.0, 80.0, step=0.1 if manual_sel == "2015" else 1.0, key=_REPAIR_KEY,
+                               help="이 점수 이상인 구조결함만 보수합니다. 높이면 가벼운 결함은 유지관리로 남겨 부분보수 개소가 줄어듭니다.")
+merge_gap = st.sidebar.slider("부분보수 병합 이격거리 (m)", 0.0, 3.0, step=0.1, key="merge_gap",
                               help="0이면 병합하지 않음(결함 하나당 부분보수 1개소)")
-use_rate = st.sidebar.checkbox("불량률 기준으로 전체보수 전환", value=True,
-                               help="끄면 불량률이 아무리 높아도 이 규칙으로는 전체보수로 바꾸지 않습니다(순수 판정).")
-rate_th = st.sidebar.slider("전체보수 전환 불량률 기준 (%)", 5.0, 60.0, float(c0["defect_rate_threshold_pct"]), 1.0,
-                            disabled=not use_rate)
-use_be = st.sidebar.checkbox("손익분기로 전체보수 전환", value=True,
+
+st.sidebar.markdown("**② 전체보수 전환**")
+use_rate = st.sidebar.checkbox("불량률 기준으로 전체보수 전환", key="use_rate",
+                               help="끄면 불량률이 아무리 높아도 이 규칙으로는 전체보수로 바꾸지 않습니다.")
+rate_th = st.sidebar.slider("전체보수 전환 불량률 기준 (%)", 5.0, 60.0, step=1.0, key="rate_th", disabled=not use_rate)
+use_be = st.sidebar.checkbox("손익분기로 전체보수 전환", key="use_be",
                              help="끄면 부분보수비가 전체보수비에 가까워도 부분보수를 유지합니다.")
-breakeven = st.sidebar.slider("부분/전체보수 손익분기 비율 (%)", 40, 100, int(float(c0["breakeven_ratio"]) * 100), 1,
-                              disabled=not use_be) / 100
-use_manual_rule = st.sidebar.checkbox("매뉴얼 전체보수 규칙 적용", value=bool(c0.get("manual_full_rule", True)),
+breakeven = st.sidebar.slider("부분/전체보수 손익분기 비율 (%)", 40, 100, step=1, key="breakeven", disabled=not use_be) / 100
+use_manual_rule = st.sidebar.checkbox("매뉴얼 전체보수 규칙 적용", key="use_manual_rule",
                                       help="2017·2025: 구간 상태점수 4.0 이상 / 2015: 불량비 0.2 이상+평균 불량이면 전체보수·교체")
-st.sidebar.caption("세 칸을 모두 끄면 전체보수 전환 없이 결함별 부분보수(+시공불가 결함은 굴착)만으로 판정한 '순수' 결과가 나오고, "
-                   "위 지표의 작은 숫자가 기본 기준 대비 차이를 보여 줍니다.")
-max_dig = st.sidebar.slider("부분굴착 허용 개소수", 0, 5, int(c0["max_partial_excavations"]))
-rate_method = st.sidebar.radio("불량률 산정", ["joint_count", "length"],
-                               format_func=lambda x: "관 본수 기준" if x == "joint_count" else "보수연장 기준",
-                               index=0 if c0["defect_rate_method"] == "joint_count" else 1, horizontal=True)
-overhead = st.sidebar.slider("제경비율 (%)", 0, 80, int(float(c0.get("overhead_ratio", 0)) * 100), 1) / 100
+
+st.sidebar.markdown("**③ 굴착 판단** — 매뉴얼이 엔지니어 판단에 맡긴 부분")
+blocker = st.sidebar.radio("굴착이 필요한 결함", list(_BLOCKERS), format_func=_BLOCKERS.get, key="blocker",
+                           help="기본: 붕괴·역경사는 모든 등급, 파손·변형·침하·이음부단차는 중 이상, 좌굴·이음부이탈은 대에서 굴착. "
+                                "대 등급만: 국부 결함은 대일 때만 굴착. 굴착 최소화: 붕괴·역경사만 굴착하고 나머지는 시공성 검토로 비굴착.")
+max_dig = st.sidebar.slider("부분굴착 허용 개소수", 0, 5, step=1, key="max_dig",
+                            help="굴착이 필요한 곳이 이보다 많으면 부분굴착 대신 굴착교체")
+
+with st.sidebar.expander("고급 설정"):
+    rate_method = st.radio("불량률 산정", ["joint_count", "length"],
+                           format_func=lambda x: "관 본수 기준" if x == "joint_count" else "보수연장 기준",
+                           index=0 if c0["defect_rate_method"] == "joint_count" else 1, horizontal=True)
+    overhead = st.slider("제경비율 (%)", 0, 80, int(float(c0.get("overhead_ratio", 0)) * 100), 1) / 100
 
 with st.sidebar.expander("💰 관경별 단가 테이블 편집"):
     _src = (base_cfg.get("price_source") or {}).get("title")
@@ -256,7 +274,10 @@ with st.sidebar.expander("💰 관경별 단가 테이블 편집"):
 cfg = _apply_prices(base_cfg, price_df)
 cfg = with_criteria(cfg, merge_gap_m=merge_gap, defect_rate_threshold_pct=rate_th, breakeven_ratio=breakeven,
                     use_rate_rule=use_rate, use_breakeven_rule=use_be, manual_full_rule=use_manual_rule,
-                    max_partial_excavations=max_dig, defect_rate_method=rate_method, overhead_ratio=overhead)
+                    max_partial_excavations=max_dig, defect_rate_method=rate_method, overhead_ratio=overhead,
+                    blocker_policy=blocker,
+                    # 매뉴얼 기본값과 같으면 넘기지 않음(관로별 적용매뉴얼이 다른 혼용 사업에서 각 매뉴얼 기본값 유지)
+                    repair_min_score=(repair_min if abs(repair_min - float(c0["repair_min_score"])) > 1e-9 else None))
 
 # ------------------------------------------------------------------ 조서를 올리기 전: 빈 화면
 if data_bytes is None:
@@ -313,10 +334,12 @@ k = st.columns(5)
 _dcost = res.total_cost - base_res.total_cost
 k[0].metric("총 개략공사비", _won(res.total_cost),
             (_won(_dcost) + " (기본기준 대비)") if abs(_dcost) >= 1 else None, delta_color="inverse")
+_dfull = _len(res, ['비굴착 전체보수']) - _len(base_res, ['비굴착 전체보수'])
 k[1].metric("비굴착 전체보수", f"{_len(res, ['비굴착 전체보수']):,.1f} m",
-            f"{_len(res, ['비굴착 전체보수']) - _len(base_res, ['비굴착 전체보수']):+,.1f} m")
+            f"{_dfull:+,.1f} m (기본기준 대비)" if abs(_dfull) >= 0.05 else None)
 n_patch = sum(d.n_patch_sites for d in res.decisions.values())
-k[2].metric("부분보수", f"{n_patch} 개소", f"{n_patch - sum(d.n_patch_sites for d in base_res.decisions.values()):+d}")
+_dpatch = n_patch - sum(d.n_patch_sites for d in base_res.decisions.values())
+k[2].metric("부분보수", f"{n_patch} 개소", f"{_dpatch:+d} (기본기준 대비)" if _dpatch else None, delta_color="off")
 k[3].metric("굴착교체", f"{_len(res, ['굴착교체(증경)', '굴착교체(동경)']):,.1f} m")
 k[4].metric("검토 경고", f"{len(res.warnings)} 건")
 
@@ -484,12 +507,6 @@ with tabs[7]:
         st.download_button("🧾 공사비 내역서·원가계산서 (Excel, 수식 연동)", cost_path.read_bytes(),
                            file_name=f"{project}_공사비내역서.xlsx",
                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        if any(p.has_coords for p in res.pipes):
-            gj_path, gj_warn = export_geojson(res, Path(td) / "gis.geojson")
-            st.download_button("🗺️ GIS 결과 (GeoJSON, WGS84 · 관로/결함/맨홀)", gj_path.read_bytes(),
-                               file_name=f"{project}_GIS.geojson", mime="application/geo+json")
-            for w in gj_warn:
-                st.caption(w)
         dxf_path = export_dxf(res, Path(td) / "defects.dxf")
         st.download_button("📐 평면·종단 결함도면 (DXF)", dxf_path.read_bytes(), file_name=f"{project}_결함도면.dxf",
                            mime="application/dxf")

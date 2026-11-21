@@ -56,17 +56,14 @@ GUIDE = """물꼬 시연 순서 (예제 자료, 웹 공개판 기준)
     기대값: 맨홀 10개 · 보수대상 3 · 보수공법 적용 9 · 맨홀 보수비 약 601만원(예시 단가)
     이후 출력 탭의 수량산출서·보고서 초안에 맨홀 정비계획이 함께 들어감
 
-[9] SWMM·GIS 연동 (선택, 고급)
-    왼쪽 'SWMM 연동' → 03_SWMM_모델.inp, 04_SWMM_결과.rpt
-    왼쪽 'GIS 연동' → GIS 관로선에 05_GIS_관로선.geojson (맨홀점은 06_GIS_맨홀점.zip)
-    → 경고 탭에 "SWMM 결합 12개 매칭", "GIS 결합(EPSG:5186) 12개 매칭", "P-007 통수능 부족 1.32" 추가
-    → 출력 탭에 GIS 결과(GeoJSON) 버튼, DXF 도면이 실제 좌표로 그려짐
+[9] 판정 기준 묶음 (선택) — 왼쪽 '판정기준' 맨 위 버튼
+    순수 판정: 전체보수 전환 규칙을 모두 끔 → 부분보수 5 → 20개소, 전체보수 0관로, 1.83억
+    엄격형: 보수대상 50점 이상·불량률 10%·부분굴착 3개소 (실제 사업 관행 예)
+    매뉴얼 기본: 원래 값으로 되돌림
 
 자료 설명
   01_정밀조사조서.xlsx  관로제원(관로 12개) + 결함내역(결함 40행). 모든 판정이 한 번씩 나오도록 만든 가상 자료
   02_맨홀조서.xlsx      맨홀 10개 결함(맨홀번호·결함명·등급·깊이·블록이음부수)
-  03/04 SWMM            같은 관로 12개의 SWMM 모델과 결과
-  05/06 GIS             같은 관로의 관로선·맨홀점(EPSG:5186 가상 좌표)
 
 내 자료로 시연하려면
   왼쪽 '조서 입력 양식 받기'로 빈 양식을 받아, 관로제원(관번·관경·도면연장 필수)과
@@ -78,21 +75,11 @@ def make_pack(out: Path = OUT) -> Path:
     files = {
         "01_정밀조사조서.xlsx": HERE / "sample_survey.xlsx",
         "02_맨홀조서.xlsx": HERE / "sample_manholes.xlsx",
-        "03_SWMM_모델.inp": HERE / "sample_swmm.inp",
-        "04_SWMM_결과.rpt": HERE / "sample_swmm.rpt",
-        "05_GIS_관로선.geojson": HERE / "sample_gis_lines.geojson",
     }
-    pts = io.BytesIO()
-    with zipfile.ZipFile(pts, "w", zipfile.ZIP_DEFLATED) as z:
-        for ext in ("shp", "shx", "dbf", "prj", "cpg"):
-            f = HERE / f"sample_gis_manholes.{ext}"
-            if f.exists():
-                z.write(f, f"맨홀점.{ext}")
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("00_시연순서.txt", GUIDE.encode("utf-8-sig"))
         for name, src in files.items():
             z.write(src, name)
-        z.writestr("06_GIS_맨홀점.zip", pts.getvalue())
     return out
 
 
