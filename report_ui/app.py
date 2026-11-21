@@ -221,7 +221,7 @@ project = st.sidebar.text_input("사업명", "노후하수관로 정비사업")
 
 st.sidebar.header("📘 조사·평가 매뉴얼")
 manual_sel = st.sidebar.radio(
-    "기본 적용 매뉴얼", ["2017", "2025", "2015"], horizontal=True,
+    "기본 적용 매뉴얼", ["2025", "2017", "2015"], index=1, horizontal=True,   # 최신순 표시, 기본값은 2017
     help="조서에 '적용매뉴얼' 열이 있으면 관로별로 그 값이 우선합니다(2015·2017 혼용 사업 등).")
 base_cfg = load_config(manual=manual_sel)
 st.sidebar.caption(base_cfg["manual_title"])
