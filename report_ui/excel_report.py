@@ -149,7 +149,7 @@ def build_workbook(res: ProjectResult, project_name: str = "노후하수관로 �
         cap = T.capacity_comparison(res)
         if not cap.empty:
             ws = _sheet(writer, "7_정비전후통수능")
-            ws.cell(row=1, column=1, value="정비 전·후 만관 통수능 비교 (Manning 개략, 정비 후 내경·조도계수는 config.rehab_hydraulics)")
+            ws.cell(row=1, column=1, value="정비 전·후 만관 통수능·유속 비교 (Manning 개략, 유량 ㎥/일, 유속 기준 KDS 61 40 00:2022 오수 0.6~3.0·우수/합류 0.8~3.0 m/s)")
             _write_block(ws, cap, 3)
             _autowidth(ws, list(cap.columns))
 

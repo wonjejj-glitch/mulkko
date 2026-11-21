@@ -28,8 +28,10 @@ PIPES = [
     ("P-012", "MH-09", "MH-10", "흄관", 300, 36.0, 35.0, 1.7, "아스콘", "순방향", "", None, None, -30, (30.10, 29.90)),
 ]
 
-# 설계유량(L/s): P-007은 Manning 만관 통수능(약 114 L/s)을 초과 → 자동 통수능 부족 판정(증경 D450)
-DESIGN_FLOW = {"P-001": 18.0, "P-002": 22.0, "P-003": 40.0, "P-004": 55.0, "P-007": 150.0, "P-008": 260.0}
+# 설계유량(㎥/일, 실무 표기): P-007은 Manning 만관 통수능(약 9,860 ㎥/일 = 114 L/s)을 초과 → 자동 통수능 부족 판정(증경 D450)
+DESIGN_FLOW = {"P-001": 1555, "P-002": 1901, "P-003": 3456, "P-004": 4752, "P-007": 12960, "P-008": 22464,
+               "P-009": 200}   # P-009: 유량이 적어 최소유속 미달 → 토사퇴적과 같은 이유(준설 주기 단축 안내)
+PIPE_USE = {"P-008": "합류"}      # 나머지는 오수 (유속 기준: 오수 0.6~3.0, 합류 0.8~3.0 m/s)
 
 # (관번, 거리, 종료거리, 결함코드, 결함내용, 구조등급, 운영등급)
 DEFECTS = [
@@ -122,7 +124,7 @@ def make_sample(path: str | Path) -> Path:
     ws.append([])
     ws.append(["관번", "시점맨홀", "종점맨홀", "관종", "관경(mm)", "도면연장(m)", "촬영연장(m)", "평균심도(m)", "포장종류",
                "조사방향", "통수능부족", "통수능비", "필요관경", "시점X", "시점Y", "종점X", "종점Y",
-               "시점지반고", "시점관저고", "종점지반고", "종점관저고", "설계유량(L/s)"])
+               "시점지반고", "시점관저고", "종점지반고", "종점관저고", "설계유량(㎥/일)", "관로구분"])
     for row in PIPES:
         pid, f, t, mat, dia, L, cctv, dep, pav, dirc, cap, ratio, req, _az, (gf, gt) = row
         (x0, y0), (x1, y1) = coords.get(pid, ((None, None), (None, None)))
@@ -133,7 +135,8 @@ def make_sample(path: str | Path) -> Path:
         else:
             il_f = il_t = None
         flow = DESIGN_FLOW.get(pid)
-        ws.append([pid, f, t, mat, dia, L, cctv, dep, pav, dirc, cap, ratio, req, x0, y0, x1, y1, gf, il_f, gt, il_t, flow])
+        ws.append([pid, f, t, mat, dia, L, cctv, dep, pav, dirc, cap, ratio, req, x0, y0, x1, y1, gf, il_f, gt, il_t, flow,
+                   PIPE_USE.get(pid, "오수")])
 
     ws2 = wb.create_sheet("결함내역")
     ws2.append(["관번", "거리(m)", "종료거리(m)", "결함코드", "결함내용", "구조등급", "운영등급"])

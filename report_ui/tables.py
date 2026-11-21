@@ -87,8 +87,8 @@ def pipe_detail(res: ProjectResult) -> pd.DataFrame:
             "관번": p.pipe_id, "시점맨홀": p.from_mh, "종점맨홀": p.to_mh, "관종": p.material,
             "관경(mm)": p.diameter_mm, "도면연장(m)": p.plan_length_m, "촬영연장(m)": p.cctv_length_m,
             "연장보정계수": round(p.scale_factor, 4), "조사방향": p.survey_direction, "평균심도(m)": p.avg_depth_m,
-            "포장": p.pavement, "설계유량(L/s)": p.design_flow_lps,
-            "만관통수능(L/s)": round(p.full_capacity_lps, 1) if p.full_capacity_lps else None,
+            "포장": p.pavement, "설계유량(㎥/일)": round(p.design_flow_lps * 86.4) if p.design_flow_lps else None,
+            "만관통수능(㎥/일)": round(p.full_capacity_lps * 86.4) if p.full_capacity_lps else None,
             "통수능비": p.capacity_ratio, "통수능부족": "Y" if p.capacity_insufficient else "",
             "적용매뉴얼": d.manual, "구조적 상태점수": d.condition_score, "최대 상태등급": int(d.condition_grade),
             "등급3이상 본비율(%)": d.bad_unit_ratio_pct, "불량비(2015)": d.bad_ratio or None,
@@ -165,7 +165,12 @@ def defect_detail(res: ProjectResult) -> pd.DataFrame:
 
 
 def capacity_comparison(res: ProjectResult) -> pd.DataFrame:
-    """정비 전·후 만관 통수능(Manning 개략) 비교. 관저경사를 알 수 없는 관로는 제외."""
+    """정비 전·후 만관 통수능(Manning 개략)과 유속 검토. 관저경사를 알 수 없는 관로는 제외.
+
+    유량은 실무 표기인 ㎥/일(1 L/s = 86.4 ㎥/일). 유속은 설계유량이 있으면 그 유량이 흐를 때(부분수심),
+    없으면 만관 유속이며, KDS 61 40 00:2022 기준(오수 0.6~3.0, 우수·합류 0.8~3.0 m/s)으로 판정한다.
+    """
+    from common.hydraulics import LPS_TO_CMD, velocity_check
     from common.rehab_hydraulics import capacity_before_after
     rows = []
     for p in res.pipes:
@@ -174,13 +179,22 @@ def capacity_comparison(res: ProjectResult) -> pd.DataFrame:
         if r is None:
             continue
         flow = p.design_flow_lps
+        use = p.pipe_use or res.config["criteria"].get("default_pipe_use", "오수")
+        judge, action = velocity_check(res.config, use, r["v1"])
+        if r["v1"] < r["v0"] - 0.005 and r["v1"] < res.config["criteria"].get("velocity_limits", {}).get(use, [0.6])[0]:
+            action = ("정비 후 유속이 정비 전보다 낮아짐(하수도설계기준 18.6: 기존 최소유속 유지 원칙) · " + action).rstrip(" · ")
         rows.append({
-            "관번": p.pipe_id, "정비공법": d.method, "경사(‰)": round((p.slope if p.slope else (p.from_invert_el - p.to_invert_el) / p.plan_length_m) * 1000, 2),
-            "정비전 내경(mm)": r["d0"], "정비전 n": round(r["n0"], 4), "정비전 통수능(L/s)": round(r["q0"], 1),
-            "정비후 내경(mm)": round(r["d1"], 1), "정비후 n": round(r["n1"], 4), "정비후 통수능(L/s)": round(r["q1"], 1),
-            "통수능 변화(%)": round(r["change_pct"], 1), "설계유량(L/s)": flow,
+            "관번": p.pipe_id, "관로구분": use, "정비공법": d.method,
+            "경사(‰)": round((p.slope if p.slope else (p.from_invert_el - p.to_invert_el) / p.plan_length_m) * 1000, 2),
+            "정비전 내경(mm)": r["d0"], "정비전 n": round(r["n0"], 4), "정비전 통수능(㎥/일)": round(r["q0"] * LPS_TO_CMD),
+            "정비후 내경(mm)": round(r["d1"], 1), "정비후 n": round(r["n1"], 4), "정비후 통수능(㎥/일)": round(r["q1"] * LPS_TO_CMD),
+            "통수능 변화(%)": round(r["change_pct"], 1),
+            "설계유량(㎥/일)": round(flow * LPS_TO_CMD) if flow else None,
             "정비전 유량/통수능": round(flow / r["q0"], 2) if flow else None,
             "정비후 유량/통수능": round(flow / r["q1"], 2) if flow else None,
+            "유속 산정": "설계유량 흐를 때" if flow else "만관(유량 미입력)",
+            "정비전 유속(m/s)": round(r["v0"], 2), "정비후 유속(m/s)": round(r["v1"], 2),
+            "유속 검토(정비후)": judge, "유지관리·조치": action,
         })
     return pd.DataFrame(rows)
 

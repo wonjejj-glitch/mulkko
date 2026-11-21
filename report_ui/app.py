@@ -378,11 +378,17 @@ with tabs[0]:
     st.dataframe(_bd, hide_index=True, width="stretch")
     cap_df = T.capacity_comparison(res)
     if not cap_df.empty:
-        with st.expander("🌊 정비 전·후 통수능 비교 (Manning 개략)"):
+        with st.expander("🌊 정비 전·후 통수능·유속 비교 (Manning 개략)"):
+            _bad = cap_df[~cap_df["유속 검토(정비후)"].str.startswith("적정")]
+            st.caption("유량은 ㎥/일(1 L/s = 86.4 ㎥/일). 유속 기준은 하수도설계기준 KDS 61 40 00:2022 — 오수관로 0.6\\~3.0 m/s"
+                       "(계획시간최대오수량), 우수·합류관로 0.8\\~3.0 m/s(계획우수량). 조서에 '관로구분'(오수/우수/합류)이 없으면 오수로 봅니다."
+                       + (f" **유속 기준 밖 {len(_bad)}개 관로**: " + ", ".join(_bad["관번"]) if len(_bad) else " 모든 관로가 유속 기준 안입니다."))
             _cap_view = cap_df.copy()      # 설계유량이 없는 관로는 'None' 대신 '—'
-            for _c, _f in (("설계유량(L/s)", "{:,.1f}"), ("정비전 유량/통수능", "{:.2f}"), ("정비후 유량/통수능", "{:.2f}")):
+            for _c, _f in (("설계유량(㎥/일)", "{:,.0f}"), ("정비전 유량/통수능", "{:.2f}"), ("정비후 유량/통수능", "{:.2f}")):
                 _cap_view[_c] = [_f.format(v) if pd.notna(v) and v else "—" for v in _cap_view[_c]]
-            st.dataframe(_cap_view, hide_index=True, width="stretch")
+            _cap_view["유지관리·조치"] = _cap_view["유지관리·조치"].replace("", "—")
+            st.dataframe(_cap_view, hide_index=True, width="stretch",
+                         column_config={"유지관리·조치": st.column_config.TextColumn(width="large")})
 
 with tabs[1]:
     detail = T.pipe_detail(res)

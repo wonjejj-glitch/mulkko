@@ -90,7 +90,7 @@ def make_swmm_sample(out_dir: str | Path) -> tuple[Path, Path]:
         pid, _f, _t, mat, dia, L = row[:6]
         il_f, il_t, *_ = elev[pid]
         slope = (il_f - il_t) / L
-        q = DESIGN_FLOW.get(pid, DEFAULT_FLOW)
+        q = DESIGN_FLOW[pid] / 86.4 if pid in DESIGN_FLOW else DEFAULT_FLOW     # 조서 예제는 ㎥/일, SWMM은 L/s
         qfull = full_capacity_lps(dia, slope, N_BY_MATERIAL.get(mat, 0.013))
         ratio = q / qfull
         depth = 1.0 if ratio >= 1 else min(0.95, 0.30 + 0.6 * ratio)

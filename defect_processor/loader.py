@@ -114,6 +114,26 @@ def read_csv_pair(pipes_csv: str | Path, defects_csv: str | Path, cfg: dict) -> 
 
 
 # ---------------------------------------------------------------- 값 변환
+def _design_flow_lps(r) -> float | None:
+    """설계유량을 L/s로. 실무 표기 ㎥/일(단위 없는 '설계유량'도 ㎥/일로 봄), L/s, ㎥/s 열을 모두 받는다."""
+    lps = _f(r.get("design_flow_lps"))
+    if lps is not None:
+        return lps
+    cms = _f(r.get("design_flow_cms"))
+    if cms is not None:
+        return cms * 1000.0
+    cmd = _f(r.get("design_flow_cmd"))
+    return cmd / 86.4 if cmd is not None else None
+
+
+def _pipe_use(v: Any) -> str | None:
+    s = str(v or "").strip()
+    for key in ("합류", "우수", "오수"):
+        if key in s:
+            return key
+    return None
+
+
 def _f(v: Any, default: float | None = None) -> float | None:
     if v is None:
         return default
@@ -220,7 +240,8 @@ def build_pipes(pipes_df: pd.DataFrame, defects_df: pd.DataFrame, cfg: dict) -> 
             capacity_insufficient=cap_flag,
             capacity_ratio=cap_ratio,
             required_diameter_mm=int(req) if req else None,
-            design_flow_lps=_f(r.get("design_flow_lps")),
+            design_flow_lps=_design_flow_lps(r),
+            pipe_use=_pipe_use(r.get("pipe_use")),
             roughness_n=_f(r.get("roughness_n")),
             from_x=_f(r.get("from_x")), from_y=_f(r.get("from_y")),
             to_x=_f(r.get("to_x")), to_y=_f(r.get("to_y")),

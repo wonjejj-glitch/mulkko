@@ -1,7 +1,7 @@
 """정비 후 관로의 수리 제원(내경·조도계수)과 정비 전후 통수능 비교 (개략)."""
 from __future__ import annotations
 
-from common.hydraulics import full_capacity_lps, manning_n, pipe_slope
+from common.hydraulics import flow_velocity, full_capacity_lps, full_velocity, manning_n, pipe_slope
 from common.models import M_CIPP, M_PARTIAL_DIG, M_REPLACE, M_UPSIZE, Pipe, PipeDecision
 
 
@@ -43,7 +43,13 @@ def capacity_before_after(pipe: Pipe, dec: PipeDecision, cfg: dict) -> dict | No
         return None
     slope = max(slope, float(cfg["criteria"].get("min_slope", 0.0005)))
     d1, n1, changed = post_rehab_properties(pipe, dec, cfg)
-    q0 = full_capacity_lps(pipe.diameter_mm, slope, manning_n(cfg, pipe))
+    n0 = manning_n(cfg, pipe)
+    q0 = full_capacity_lps(pipe.diameter_mm, slope, n0)
     q1 = full_capacity_lps(d1, slope, n1)
-    return {"d0": pipe.diameter_mm, "n0": manning_n(cfg, pipe), "q0": q0, "d1": d1, "n1": n1, "q1": q1,
-            "change_pct": (q1 / q0 - 1) * 100 if q0 else 0.0, "changed": changed}
+    flow = pipe.design_flow_lps
+    # 유속: 설계유량이 있으면 그 유량이 흐를 때(부분수심), 없으면 만관 유속
+    v0 = flow_velocity(pipe.diameter_mm, slope, n0, flow) if flow else full_velocity(pipe.diameter_mm, slope, n0)
+    v1 = flow_velocity(d1, slope, n1, flow) if flow else full_velocity(d1, slope, n1)
+    return {"d0": pipe.diameter_mm, "n0": n0, "q0": q0, "d1": d1, "n1": n1, "q1": q1,
+            "change_pct": (q1 / q0 - 1) * 100 if q0 else 0.0, "changed": changed,
+            "v0": v0, "v1": v1, "v_basis": "설계유량" if flow else "만관"}

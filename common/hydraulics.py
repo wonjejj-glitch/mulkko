@@ -31,6 +31,59 @@ def full_capacity_lps(diameter_mm: float, slope: float, n: float) -> float:
     return (1.0 / n) * area * radius ** (2 / 3) * math.sqrt(slope) * 1000.0
 
 
+LPS_TO_CMD = 86.4   # 1 L/s = 86.4 ㎥/일
+
+
+def full_velocity(diameter_mm: float, slope: float, n: float) -> float:
+    """원형관 만관 유속(m/s) = (1/n)·R^(2/3)·S^(1/2)."""
+    if slope <= 0 or n <= 0:
+        return 0.0
+    return (1.0 / n) * (diameter_mm / 4000.0) ** (2 / 3) * math.sqrt(slope)
+
+
+def flow_velocity(diameter_mm: float, slope: float, n: float, flow_lps: float) -> float:
+    """설계유량이 흐를 때의 평균유속(m/s). 원형관 부분수심 Manning 식(등류)으로 수심을 찾아 V=Q/A.
+
+    만관 최대유량(수심 약 94%)을 넘으면 만관 단면으로 나눈 값(압력류 근사).
+    """
+    if slope <= 0 or n <= 0 or diameter_mm <= 0 or not flow_lps or flow_lps <= 0:
+        return 0.0
+    D = diameter_mm / 1000.0
+    Q = flow_lps / 1000.0
+
+    def q_of(theta: float) -> tuple[float, float]:
+        area = D * D / 8.0 * (theta - math.sin(theta))
+        r = area / (D * theta / 2.0)
+        return (1.0 / n) * area * r ** (2 / 3) * math.sqrt(slope), area
+
+    t_max = 5.278                       # 유량 최대 수심(≈0.938D)의 중심각
+    q_max, _ = q_of(t_max)
+    if Q >= q_max:
+        return Q / (math.pi * D * D / 4.0)
+    lo, hi = 1e-6, t_max
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if q_of(mid)[0] < Q:
+            lo = mid
+        else:
+            hi = mid
+    _, area = q_of(hi)
+    return Q / area if area else 0.0
+
+
+def velocity_check(cfg: dict, pipe_use: str | None, v: float) -> tuple[str, str]:
+    """(판정, 조치 안내). KDS 61 40 00:2022 1.3 유속 기준(오수 0.6~3.0, 우수·합류 0.8~3.0 m/s)."""
+    c = cfg["criteria"]
+    use = pipe_use or c.get("default_pipe_use", "오수")
+    vmin, vmax = c.get("velocity_limits", {}).get(use, [0.6, 3.0])
+    if v < vmin:
+        return (f"최소유속 미달({use} {vmin} m/s 이상)",
+                "퇴적·악취 우려 → 준설 주기 단축, 플러싱·복단면·오수 전용관 병렬부설 등 최소유속 확보 대책 검토")
+    if v > vmax:
+        return (f"최대유속 초과({use} {vmax} m/s 이하)", "관 마모·맨홀 손상 우려 → 단차·감세공 설치 또는 관경·경사 조정 검토")
+    return f"적정({use} {vmin}~{vmax} m/s)", ""
+
+
 def required_diameter_mm(cfg: dict, flow_lps: float, slope: float, n: float, limit_ratio: float) -> int | None:
     """설계유량을 통수할 수 있는 최소 표준관경(없으면 None)."""
     for d in sorted(cfg["standard_diameters_mm"]):

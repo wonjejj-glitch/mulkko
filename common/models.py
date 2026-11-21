@@ -81,7 +81,8 @@ class Pipe:
     capacity_insufficient: bool = False
     capacity_ratio: Optional[float] = None
     required_diameter_mm: Optional[int] = None
-    design_flow_lps: Optional[float] = None     # 계획(설계)유량 L/s
+    design_flow_lps: Optional[float] = None     # 계획(설계)유량 L/s (입력은 ㎥/일·L/s·㎥/s 모두 받아 L/s로 환산)
+    pipe_use: Optional[str] = None              # 관로구분 오수/우수/합류 (유속 기준). None이면 기본값(오수)
     roughness_n: Optional[float] = None         # Manning 조도계수(미입력 시 관종별 기본값)
     slope: Optional[float] = None               # 관저경사 (m/m, 수리검토 시 산정)
     full_capacity_lps: Optional[float] = None   # 만관 통수능 L/s
