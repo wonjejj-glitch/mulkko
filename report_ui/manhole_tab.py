@@ -96,12 +96,18 @@ def render(project: str) -> None:
     up = c1.file_uploader("맨홀 결함 조서 (.xlsx) — 간단 양식 또는 PC의 manhole-pdf 결과", type=["xlsx"], key="mh_up")
     c2.download_button("📄 입력 양식 받기", _template_bytes(), file_name="맨홀결함_입력양식.xlsx",
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    src = up if up is not None else (SAMPLE if SAMPLE.exists() else None)
+    if SAMPLE.exists():
+        c2.download_button("🎬 예제 맨홀 조서 받기", SAMPLE.read_bytes(), file_name="예제_맨홀조서.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="dl_demo_mh")
+    src = up
     if src is None:
-        st.info("맨홀 결함 조서를 올리면 결과가 표시됩니다.")
+        k = st.columns(4)
+        for c, lab in zip(k, ["맨홀 수", "보수대상(구조 4↑·운영 5)", "보수공법 적용 맨홀", "맨홀 보수 공사비"]):
+            c.metric(lab, "–")
+        st.info("맨홀 결함 조서(.xlsx)를 올리면 상태등급·보수공법·수량·공사비가 계산됩니다.")
+        st.session_state.pop("mh_works", None)
+        st.session_state.pop("mh_result", None)
         return
-    if up is None:
-        st.caption("샘플 맨홀 자료 사용 중 (sample_data/sample_manholes.xlsx)")
     try:
         mhs = read_manholes(src)
     except Exception as e:  # noqa: BLE001

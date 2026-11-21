@@ -117,14 +117,20 @@ st.sidebar.download_button("📄 조서 입력 양식 받기", _survey_template(
                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                            help="관로제원·결함내역 두 시트. 노란 머리글이 필수 열입니다.")
 up_file = st.sidebar.file_uploader("nPASS / PipeAsset 조서 (.xlsx)", type=["xlsx", "xls"])
+DEMO_PACK = ROOT / "sample_data" / "시연용_예제자료.zip"
 if up_file is not None:
     data_bytes, data_name = up_file.getvalue(), up_file.name
-elif SAMPLE.exists():
-    data_bytes, data_name = SAMPLE.read_bytes(), SAMPLE.name
-    st.sidebar.caption("샘플 데이터 사용 중 (sample_data/sample_survey.xlsx)")
 else:
-    st.error("샘플 데이터가 없습니다. `python main.py sample`을 먼저 실행하거나 파일을 업로드하세요.")
-    st.stop()
+    data_bytes, data_name = None, None     # 조서를 올리기 전에는 계산하지 않음(빈 화면)
+with st.sidebar.expander("🎬 예제 자료 (시연·연습용)"):
+    st.caption("가상의 관로 12개 예제입니다. 받아서 위 칸에 올리면 계산됩니다. 모든 판정(부분보수·전체보수·굴착·증경·준설·개량제외)이 한 번씩 나오도록 만든 자료입니다.")
+    if SAMPLE.exists():
+        st.download_button("예제 조서(.xlsx) 받기", SAMPLE.read_bytes(), file_name="예제_정밀조사조서.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="dl_demo_survey")
+    if DEMO_PACK.exists():
+        st.download_button("예제 자료 묶음(.zip) 받기", DEMO_PACK.read_bytes(), file_name="물꼬_시연용_예제자료.zip",
+                           mime="application/zip", key="dl_demo_pack",
+                           help="조서 + 맨홀 조서 + SWMM(.inp/.rpt) + GIS(관로선·맨홀점) + 시연 순서 안내")
 with st.sidebar.expander("🌊 SWMM 연동 (선택)"):
     inp_file = st.file_uploader("SWMM 모델 (.inp)", type=["inp"])
     rpt_file = st.file_uploader("SWMM 결과 (.rpt)", type=["rpt"])
@@ -177,6 +183,24 @@ cfg = _apply_prices(base_cfg, price_df)
 cfg = with_criteria(cfg, merge_gap_m=merge_gap, defect_rate_threshold_pct=rate_th, breakeven_ratio=breakeven,
                     max_partial_excavations=max_dig, defect_rate_method=rate_method, overhead_ratio=overhead)
 
+# ------------------------------------------------------------------ 조서를 올리기 전: 빈 화면
+if data_bytes is None:
+    st.title("🛠️ 물꼬 — 노후하수관로 정비 통합 설계 플랫폼")
+    st.caption("정밀조사 판독부터 공법 판정·수량·공사비·도면까지 — CCTV 결함 병합 · 굴착/비굴착 VE 판정 · 수량/개략공사비 · CAD 주석 자동 생성")
+    st.info("📂 왼쪽 **조사 데이터**에 정밀조사 조서(.xlsx)를 올리면 계산이 시작됩니다. "
+            "자료가 없으면 왼쪽 **🎬 예제 자료**에서 예제 조서를 받아 올려 보세요. "
+            "빈 양식은 **📄 조서 입력 양식 받기**로 받을 수 있습니다.")
+    _k = st.columns(5)
+    for _c, _lab in zip(_k, ["총 개략공사비", "비굴착 전체보수", "부분보수", "굴착교체", "검토 경고"]):
+        _c.metric(_lab, "–")
+    _tabs = st.tabs(["📊 총괄", "📋 관로별 조서", "🔎 관로 상세", "🧩 병합내역", "📐 수량·공사비", "📈 민감도", "⚠️ 경고", "⬇️ 출력", "🕳️ 맨홀"])
+    for _t in _tabs[:8]:
+        _t.caption("조서를 올리면 결과가 여기에 표시됩니다.")
+    with _tabs[8]:
+        from report_ui.manhole_tab import render as render_manhole
+        render_manhole("노후하수관로 정비사업")
+    st.stop()
+
 # ------------------------------------------------------------------ 계산
 try:
     p_df, d_df = _load(data_bytes, data_name)
@@ -204,6 +228,8 @@ base_res = run_pipes(base_pipes, base_cfg)
 # ------------------------------------------------------------------ KPI
 st.title("🛠️ 물꼬 — 노후하수관로 정비 통합 설계 플랫폼")
 st.caption("정밀조사 판독부터 공법 판정·수량·공사비·도면까지 — CCTV 결함 병합 · 굴착/비굴착 VE 판정 · 수량/개략공사비 · CAD 주석 자동 생성")
+_n_pipes, _len_all = len(res.pipes), sum(p.plan_length_m for p in res.pipes)
+st.success(f"📂 **{data_name}** — 관로 {_n_pipes:,}개, 총연장 {_len_all:,.1f}m로 계산한 결과입니다.")
 
 
 def _len(r, ms):
@@ -225,10 +251,16 @@ tabs = st.tabs(["📊 총괄", "📋 관로별 조서", "🔎 관로 상세", "�
 
 with tabs[0]:
     summary = T.summary_by_method(res)
+    # 결과값 순서로: 공사비가 큰 공법부터(같으면 연장 순), 해당 관로가 없는 공법은 숨기고 합계는 맨 아래
+    _body = summary[(summary["정비공법"] != "합계") & (summary["관로수"] > 0)].sort_values(
+        ["공사비(원)", "연장(m)"], ascending=False)
+    view = pd.concat([_body, summary[summary["정비공법"] == "합계"]], ignore_index=True)
     c1, c2 = st.columns([3, 2])
-    c1.dataframe(summary.style.format({"공사비(원)": "{:,.0f}", "m당 평균(원/m)": "{:,.0f}", "연장(m)": "{:,.1f}"}),
+    c1.caption("공사비가 큰 공법부터 정렬 · 해당 관로가 없는 공법은 표시하지 않음")
+    c1.dataframe(view.style.format({"공사비(원)": "{:,.0f}", "m당 평균(원/m)": "{:,.0f}", "연장(m)": "{:,.1f}",
+                                    "구성비(%)": "{:.1f}"}),
                  hide_index=True, width="stretch")
-    chart_df = summary[summary["정비공법"] != "합계"]
+    chart_df = _body
     c2.altair_chart(
         alt.Chart(chart_df).mark_arc(innerRadius=35).encode(
             theta="연장(m):Q",
@@ -237,7 +269,11 @@ with tabs[0]:
             tooltip=["정비공법", "관로수", "연장(m)", alt.Tooltip("공사비(원):Q", format=",")],
         ).properties(title="공법별 연장 구성", height=380), width="stretch")
     st.subheader("관경별·공법별 연장(m)")
-    st.dataframe(T.length_by_diameter(res), hide_index=True, width="stretch")
+    _bd = T.length_by_diameter(res)
+    if not _bd.empty:          # 해당 관로가 없는 공법 열은 숨기고, 공법 열 순서도 위 표와 같게
+        _keep = [c for c in _body["정비공법"] if c in _bd.columns]
+        _bd = _bd[[c for c in _bd.columns if c not in METHODS] [:1] + _keep + [c for c in _bd.columns if c == "합계"]]
+    st.dataframe(_bd, hide_index=True, width="stretch")
     cap_df = T.capacity_comparison(res)
     if not cap_df.empty:
         with st.expander("🌊 정비 전·후 통수능 비교 (Manning 개략)"):
