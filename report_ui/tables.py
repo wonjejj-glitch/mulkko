@@ -51,9 +51,13 @@ def criteria_table(res: ProjectResult) -> pd.DataFrame:
     c = res.config["criteria"]
     used = sorted({d.manual for d in res.decisions.values()})
     from common.manuals import load_manual
+    ov = res.config.get("criteria_override", {})          # 사용자가 정한 값(프리셋·화면)이 매뉴얼 기본보다 우선
+    def _rs(m, k):
+        return ov.get(k, load_manual(m)["criteria"][k])
     items = [("적용 매뉴얼", " / ".join(load_manual(m)["title"] for m in used) or res.config.get("manual_title", "")),
-             ("보수대상 결함점수 기준", ", ".join(f"{m}: 구조 {load_manual(m)['criteria']['repair_min_score']}점·운영 "
-                                       f"{load_manual(m)['criteria']['oper_min_score']}점 이상" for m in used))]
+             ("보수대상 결함점수 기준", ", ".join(f"{m}: 구조 {_rs(m, 'repair_min_score')}점·운영 "
+                                       f"{_rs(m, 'oper_min_score')}점 이상" for m in used)
+              + (" (사용자 조정)" if "repair_min_score" in ov else ""))]
     items += [
         ("부분보수 병합 이격거리", f"{c['merge_gap_m']} m"),
         ("부분보수 양측 여유길이", f"{c['repair_margin_m']} m"),
@@ -63,6 +67,9 @@ def criteria_table(res: ProjectResult) -> pd.DataFrame:
         ("부분보수/전체보수 손익분기 비율", f"{float(c['breakeven_ratio']) * 100:.0f} %" if c.get("use_breakeven_rule", True) else "미적용"),
         ("매뉴얼 전체보수 규칙(상태점수 4.0 등)", "적용" if c.get("manual_full_rule", True) else "미적용"),
         ("부분굴착 최소연장 / 양측여유", f"{c['partial_excavation_min_length_m']} m / {c['partial_excavation_margin_m']} m"),
+        ("굴착이 필요한 결함(시공불가 판단)", {"default": "기본(붕괴·역경사 전 등급, 파손·변형·침하·이음부단차 중 이상, 좌굴·이음부이탈 대)",
+                                         "A_only": "대 등급만 굴착(붕괴·역경사는 전 등급)",
+                                         "none": "굴착 최소화(붕괴·역경사만 굴착)"}.get(c.get("blocker_policy", "default"), c.get("blocker_policy"))),
         ("부분굴착 허용 개소수(초과 시 굴착교체)", f"{c['max_partial_excavations']} 개소"),
         ("부분굴착 연장비 한도(이상 시 굴착교체)", f"{float(c['partial_excavation_max_length_ratio']) * 100:.0f} %"),
         ("부분굴착+비굴착 / 전체굴착 공사비 한도", f"{float(c['partial_vs_full_excavation_ratio']) * 100:.0f} %"),

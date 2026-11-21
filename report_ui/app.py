@@ -160,7 +160,7 @@ def _header(state: str, loaded: bool) -> None:
   <div class="mk-steps">
     <div class="mk-step{on1}"><b><i>①</i>조서 올리기{ok}</b><span class="mk-state">{state}</span></div>
     <div class="mk-arrow">→</div>
-    <div class="mk-step"><b><i>②</i>판정 기준 확인</b><span>사이드바 슬라이더 · 매뉴얼 기준</span></div>
+    <div class="mk-step"><b><i>②</i>판정 기준 확인</b><span>사이드바 기준 묶음 버튼 · 슬라이더</span></div>
     <div class="mk-arrow">→</div>
     <div class="mk-step{on3}"><b><i>③</i>결과 확인</b><span>총괄 · 관로 상세 · 수량·공사비</span></div>
     <div class="mk-arrow">→</div>
