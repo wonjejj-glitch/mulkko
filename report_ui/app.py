@@ -228,9 +228,20 @@ st.sidebar.caption(base_cfg["manual_title"])
 
 st.sidebar.header("⚙️ 판정기준 (VE 파라미터)")
 c0 = base_cfg["criteria"]
-merge_gap = st.sidebar.slider("부분보수 병합 이격거리 (m)", 0.0, 3.0, float(c0["merge_gap_m"]), 0.1)
-rate_th = st.sidebar.slider("전체보수 전환 불량률 기준 (%)", 5.0, 60.0, float(c0["defect_rate_threshold_pct"]), 1.0)
-breakeven = st.sidebar.slider("부분/전체보수 손익분기 비율 (%)", 40, 100, int(float(c0["breakeven_ratio"]) * 100), 1) / 100
+merge_gap = st.sidebar.slider("부분보수 병합 이격거리 (m)", 0.0, 3.0, float(c0["merge_gap_m"]), 0.1,
+                              help="0이면 병합하지 않음(결함 하나당 부분보수 1개소)")
+use_rate = st.sidebar.checkbox("불량률 기준으로 전체보수 전환", value=True,
+                               help="끄면 불량률이 아무리 높아도 이 규칙으로는 전체보수로 바꾸지 않습니다(순수 판정).")
+rate_th = st.sidebar.slider("전체보수 전환 불량률 기준 (%)", 5.0, 60.0, float(c0["defect_rate_threshold_pct"]), 1.0,
+                            disabled=not use_rate)
+use_be = st.sidebar.checkbox("손익분기로 전체보수 전환", value=True,
+                             help="끄면 부분보수비가 전체보수비에 가까워도 부분보수를 유지합니다.")
+breakeven = st.sidebar.slider("부분/전체보수 손익분기 비율 (%)", 40, 100, int(float(c0["breakeven_ratio"]) * 100), 1,
+                              disabled=not use_be) / 100
+use_manual_rule = st.sidebar.checkbox("매뉴얼 전체보수 규칙 적용", value=bool(c0.get("manual_full_rule", True)),
+                                      help="2017·2025: 구간 상태점수 4.0 이상 / 2015: 불량비 0.2 이상+평균 불량이면 전체보수·교체")
+st.sidebar.caption("세 칸을 모두 끄면 전체보수 전환 없이 결함별 부분보수(+시공불가 결함은 굴착)만으로 판정한 '순수' 결과가 나오고, "
+                   "위 지표의 작은 숫자가 기본 기준 대비 차이를 보여 줍니다.")
 max_dig = st.sidebar.slider("부분굴착 허용 개소수", 0, 5, int(c0["max_partial_excavations"]))
 rate_method = st.sidebar.radio("불량률 산정", ["joint_count", "length"],
                                format_func=lambda x: "관 본수 기준" if x == "joint_count" else "보수연장 기준",
@@ -244,6 +255,7 @@ with st.sidebar.expander("💰 관경별 단가 테이블 편집"):
 
 cfg = _apply_prices(base_cfg, price_df)
 cfg = with_criteria(cfg, merge_gap_m=merge_gap, defect_rate_threshold_pct=rate_th, breakeven_ratio=breakeven,
+                    use_rate_rule=use_rate, use_breakeven_rule=use_be, manual_full_rule=use_manual_rule,
                     max_partial_excavations=max_dig, defect_rate_method=rate_method, overhead_ratio=overhead)
 
 # ------------------------------------------------------------------ 조서를 올리기 전: 빈 화면

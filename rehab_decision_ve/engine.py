@@ -46,9 +46,10 @@ def _evaluate_nondig(pipe: Pipe, defects: list[Defect], cfg: dict, length_m: flo
     patch_cost = sum(cl.cost for cl in clusters)
     ratio = patch_cost / full if full > 0 else 0.0
     rate = defect_rate_pct(pipe, defects, cfg)
-    if rate >= float(c["defect_rate_threshold_pct"]):
+    # use_rate_rule / use_breakeven_rule = False 이면 해당 전환 규칙을 적용하지 않음(순수 부분보수 판정)
+    if c.get("use_rate_rule", True) and rate >= float(c["defect_rate_threshold_pct"]):
         return _NonDig(M_CIPP, clusters, patch_cost, full, ratio, rate, "rate")
-    if ratio >= float(c["breakeven_ratio"]):
+    if c.get("use_breakeven_rule", True) and ratio >= float(c["breakeven_ratio"]):
         return _NonDig(M_CIPP, clusters, patch_cost, full, ratio, rate, "economy")
     return _NonDig(M_PATCH, clusters, patch_cost, full, ratio, rate, "patch")
 

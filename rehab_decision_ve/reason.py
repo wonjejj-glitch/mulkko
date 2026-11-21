@@ -130,8 +130,10 @@ def nondig(struct_t: list[Defect], nd, cfg: dict, oper: list[Defect], laterals: 
              f"({_won(nd.full_cost)}) 대비 {nd.ratio * 100:.1f}%(≥ 손익분기 {be:.0f}%)로 "
              f"경제성 및 구조적 안정성 고려 비굴착 전체보수 선정")
     else:
-        s = (f"{head}로 불량률 기준({th:.1f}%) 미만이며 부분보수 {n_sites}개소{merge_txt} 공사비가 전체보수 대비 "
-             f"{nd.ratio * 100:.1f}%(< {be:.0f}%)로 비굴착 부분보수 선정")
+        rate_txt = f"불량률 기준({th:.1f}%) 미만이며" if c.get("use_rate_rule", True) else "불량률 기준 미적용,"
+        be_txt = f"(< {be:.0f}%)" if c.get("use_breakeven_rule", True) else "(손익분기 미적용)"
+        s = (f"{head}로 {rate_txt} 부분보수 {n_sites}개소{merge_txt} 공사비가 전체보수 대비 "
+             f"{nd.ratio * 100:.1f}%{be_txt}로 비굴착 부분보수 선정")
     extra = []
     if laterals:
         extra.append(f"돌출관 절단 {len(laterals)}개소")
