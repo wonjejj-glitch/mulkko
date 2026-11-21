@@ -343,7 +343,13 @@ k[2].metric("부분보수", f"{n_patch} 개소", f"{_dpatch:+d} (기본기준 �
 k[3].metric("굴착교체", f"{_len(res, ['굴착교체(증경)', '굴착교체(동경)']):,.1f} m")
 k[4].metric("검토 경고", f"{len(res.warnings)} 건")
 
-tabs = st.tabs(["📊 총괄", "📋 관로별 조서", "🔎 관로 상세", "🧩 병합내역", "📐 수량·공사비", "📈 민감도", "⚠️ 경고", "⬇️ 출력", "🕳️ 맨홀"])
+# 탭 상태 추적: 무거운 탭(민감도·출력)은 그 탭을 열었을 때만 계산한다(브라우저 파이썬 재계산 시간 단축)
+tabs = st.tabs(["📊 총괄", "📋 관로별 조서", "🔎 관로 상세", "🧩 병합내역", "📐 수량·공사비", "📈 민감도", "⚠️ 경고", "⬇️ 출력", "🕳️ 맨홀"],
+               key="main_tabs", on_change="rerun")
+
+
+def _tab_open(t) -> bool:
+    return getattr(t, "open", None) is not False     # 상태 추적이 안 되는 환경이면 항상 그림
 
 with tabs[0]:
     summary = T.summary_by_method(res)
@@ -373,7 +379,10 @@ with tabs[0]:
     cap_df = T.capacity_comparison(res)
     if not cap_df.empty:
         with st.expander("🌊 정비 전·후 통수능 비교 (Manning 개략)"):
-            st.dataframe(cap_df, hide_index=True, width="stretch")
+            _cap_view = cap_df.copy()      # 설계유량이 없는 관로는 'None' 대신 '—'
+            for _c, _f in (("설계유량(L/s)", "{:,.1f}"), ("정비전 유량/통수능", "{:.2f}"), ("정비후 유량/통수능", "{:.2f}")):
+                _cap_view[_c] = [_f.format(v) if pd.notna(v) and v else "—" for v in _cap_view[_c]]
+            st.dataframe(_cap_view, hide_index=True, width="stretch")
 
 with tabs[1]:
     detail = T.pipe_detail(res)
@@ -456,6 +465,7 @@ with tabs[4]:
         st.caption("맨홀 탭의 맨홀 보수비가 도급공사비에 포함되었습니다.")
 
 with tabs[5]:
+  if _tab_open(tabs[5]):
     st.caption("현재 사이드바 기준을 바탕으로 한 가지 파라미터만 변화시켰을 때의 결과")
     param = st.selectbox("분석 파라미터", ["breakeven_ratio", "defect_rate_threshold_pct", "merge_gap_m"],
                          format_func={"breakeven_ratio": "손익분기 비율", "defect_rate_threshold_pct": "불량률 기준(%)",
@@ -484,32 +494,32 @@ with tabs[6]:
         st.success("검토 경고 없음")
 
 with tabs[7]:
-    from report_ui.quantity_book import build_quantity_book
-    st.download_button("📒 실무 양식 수량산출서 (Excel, 수식 연동)",
-                       build_quantity_book(res, project, st.session_state.get("mh_works")),
-                       file_name=f"{project}_수량산출서.xlsx",
-                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                       help="수량총괄표·비굴착/굴착 집계표·단면 산출근거·관로별 산출서(+맨홀 탭 결과가 있으면 맨홀보수 집계표)")
+  if not _tab_open(tabs[7]):
+    st.caption("이 탭을 열면 출력 파일을 만듭니다.")
+  else:
+    # 출력 탭을 열었을 때만 6종 파일을 만든다(다른 탭을 볼 때 재계산 시간 단축)
     from report_ui.cost_statement import total_cost as _total_cost
     from report_ui.design_report import build_design_report
+    from report_ui.quantity_book import build_quantity_book
+    _mh_w, _mh_r, _pc = st.session_state.get("mh_works"), st.session_state.get("mh_result"), st.session_state.get("pc_table")
+    _XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    st.download_button("📒 실무 양식 수량산출서 (Excel, 수식 연동)", build_quantity_book(res, project, _mh_w),
+                       file_name=f"{project}_수량산출서.xlsx", mime=_XLSX,
+                       help="수량총괄표·비굴착/굴착 집계표·단면 산출근거·관로별 산출서(+맨홀 탭 결과가 있으면 맨홀보수 집계표)")
     st.download_button("📝 설계보고서 초안 (Word)",
-                       build_design_report(res, project, st.session_state.get("mh_result"), st.session_state.get("mh_works"),
-                                           _total_cost(res), st.session_state.get("pc_table")),
+                       build_design_report(res, project, _mh_r, _mh_w, _total_cost(res), _pc),
                        file_name=f"{project}_설계보고서초안.docx",
                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                        help="과업 개요·조사 결과·판정 기준·공법 선정 결과·관로별 선정 사유·수량/공사비·(맨홀)·검토 의견")
     st.caption("맨홀 탭에서 맨홀 자료를 불러오면 수량산출서와 보고서 초안에 맨홀 정비계획이 함께 들어갑니다.")
     st.download_button("📗 실시설계 총괄조서 (Excel)", build_workbook(res, project),
-                       file_name=f"{project}_정비총괄조서.xlsx",
-                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                       file_name=f"{project}_정비총괄조서.xlsx", mime=_XLSX)
     with tempfile.TemporaryDirectory() as td:
-        cost_path = export_cost_statement(res, Path(td) / "cost.xlsx", project)
-        st.download_button("🧾 공사비 내역서·원가계산서 (Excel, 수식 연동)", cost_path.read_bytes(),
-                           file_name=f"{project}_공사비내역서.xlsx",
-                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        dxf_path = export_dxf(res, Path(td) / "defects.dxf")
-        st.download_button("📐 평면·종단 결함도면 (DXF)", dxf_path.read_bytes(), file_name=f"{project}_결함도면.dxf",
-                           mime="application/dxf")
+        st.download_button("🧾 공사비 내역서·원가계산서 (Excel, 수식 연동)",
+                           export_cost_statement(res, Path(td) / "cost.xlsx", project).read_bytes(),
+                           file_name=f"{project}_공사비내역서.xlsx", mime=_XLSX)
+        st.download_button("📐 평면·종단 결함도면 (DXF)", export_dxf(res, Path(td) / "defects.dxf").read_bytes(),
+                           file_name=f"{project}_결함도면.dxf", mime="application/dxf")
     enc = st.radio("LSP 인코딩", ["cp949", "utf-8"], horizontal=True,
                    help="AutoCAD 2020 이하/LISPSYS=0: cp949, AutoCAD 2021+ LISPSYS=1: utf-8")
     st.download_button("🧩 AutoLISP 주석 스크립트 (.lsp)",

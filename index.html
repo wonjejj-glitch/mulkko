@@ -57,9 +57,9 @@
 import { mount } from "./vendor/stlite/stlite.js";
 const msg = document.getElementById("msg");
 try {
-  const list = await (await fetch("./files.json?b=108d5d2cb1", { cache: "no-cache" })).json();
+  const list = await (await fetch("./files.json?b=84716a9922", { cache: "no-cache" })).json();
   const files = {};
-  for (const f of list) files[f] = { url: "./" + encodeURI(f) + "?b=108d5d2cb1" };   // 배포마다 바뀌는 번호로 브라우저 캐시 무효화
+  for (const f of list) files[f] = { url: "./" + encodeURI(f) + "?b=84716a9922" };   // 배포마다 바뀌는 번호로 브라우저 캐시 무효화
   mount({
     requirements: ["openpyxl", "ezdxf", "altair", "pyshp", "pyproj"],
     entrypoint: "report_ui/app.py",
